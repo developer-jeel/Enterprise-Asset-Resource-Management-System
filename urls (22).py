@@ -1,0 +1,298 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Assets — AssetFlow Employee Portal</title>
+  <meta name="description" content="View all assets currently assigned to you in the AssetFlow ERP employee portal.">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <link rel="stylesheet" href="{% static 'css/employee.css' %}">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-logo">AF</div>
+    <div class="sidebar-brand-text">
+      <span class="sidebar-app-name">AssetFlow</span>
+      <span class="sidebar-app-sub">Employee</span>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="{% url 'employee_index' %}" class="nav-link"><i class="ri-dashboard-line"></i> Dashboard</a>
+    <a href="{% url 'employee_assets' %}" class="nav-link active"><i class="ri-box-3-line"></i> My Assets</a>
+    <a href="{% url 'employee_bookings' %}" class="nav-link"><i class="ri-calendar-event-line"></i> Resource Booking</a>
+    <a href="{% url 'employee_maintenance' %}" class="nav-link"><i class="ri-tools-line"></i> Maintenance</a>
+    <a href="{% url 'employee_requests' %}" class="nav-link"><i class="ri-arrow-go-back-line"></i> Return & Transfer</a>
+    <a href="{% url 'employee_leave' %}" class="nav-link"><i class="ri-calendar-todo-line"></i> Leave Requests</a>
+    <a href="{% url 'employee_notifications' %}" class="nav-link"><i class="ri-notification-3-line"></i> Notifications</a>
+    <a href="{% url 'employee_profile' %}" class="nav-link"><i class="ri-user-settings-line"></i> My Profile</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-profile">
+      <div class="user-avatar">EM</div>
+      <div class="user-info">
+        <span class="user-name">{{ request.user.username }}</span>
+        <span class="user-role">{{ request.user.profile.department }}</span>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<div class="main-content">
+  <header class="top-header">
+    <div class="header-left">
+      <h1 class="header-title">My Assets</h1>
+    </div>
+    <div class="header-right">
+      <span class="dept-pill">{{ request.user.profile.department }}</span>
+      <a href="{% url 'logout' %}" class="logout-btn" style="text-decoration:none; display:inline-block; line-height:30px; text-align:center;">
+        <i class="ri-logout-box-line"></i> Sign Out
+      </a>
+    </div>
+  </header>
+
+  <main class="page-body animate-slide-right">
+
+    <!-- KPI summary -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px;">
+      <div class="card card-kpi active-kpi">
+        <div class="kpi-header"><span class="kpi-title">Total Assigned</span><div class="kpi-icon"><i class="ri-box-3-line"></i></div></div>
+        <span class="kpi-value" id="kpi-total">0</span>
+      </div>
+      <div class="card card-kpi">
+        <div class="kpi-header"><span class="kpi-title">Excellent Condition</span><div class="kpi-icon"><i class="ri-star-line"></i></div></div>
+        <span class="kpi-value" id="kpi-excellent">0</span>
+      </div>
+      <div class="card card-kpi">
+        <div class="kpi-header"><span class="kpi-title">Due for Return</span><div class="kpi-icon"><i class="ri-calendar-close-line"></i></div></div>
+        <span class="kpi-value" id="kpi-due">0</span>
+      </div>
+      <div class="card card-kpi">
+        <div class="kpi-header"><span class="kpi-title">Under Maintenance</span><div class="kpi-icon"><i class="ri-tools-line"></i></div></div>
+        <span class="kpi-value" id="kpi-repair">0</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Currently Allocated Assets</span>
+        <span class="badge badge-brand" id="asset-count-badge">0 assets</span>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters-bar">
+        <div class="search-wrapper">
+          <i class="ri-search-line search-icon"></i>
+          <input type="text" id="asset-search" class="search-input" placeholder="Search asset name, tag, serial…">
+        </div>
+        <div class="filter-group">
+          <select id="cat-filter" class="filter-select">
+            <option value="All">All Categories</option>
+            <option>Laptops</option><option>Phones</option><option>Monitors</option>
+            <option>Tablets</option><option>Accessories</option><option>Furniture</option>
+          </select>
+          <select id="cond-filter" class="filter-select">
+            <option value="All">All Conditions</option>
+            <option>Excellent</option><option>Good</option><option>Fair</option><option>Poor</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Asset Table -->
+      <div class="table-responsive">
+        <table class="table-custom">
+          <thead>
+            <tr>
+              <th>Asset Name</th>
+              <th>Asset Tag</th>
+              <th>Category</th>
+              <th>Serial No.</th>
+              <th>Condition</th>
+              <th>Allocated On</th>
+              <th>Return Date</th>
+              <th>Location</th>
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="assets-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ASSET DETAIL MODAL -->
+<div class="modal-overlay" id="modal-asset-detail">
+  <div class="modal-container" style="max-width:640px;">
+    <div class="modal-header">
+      <span class="modal-title" id="detail-modal-title">Asset Details</span>
+      <button class="modal-close-btn" onclick="App.closeModal('modal-asset-detail')"><i class="ri-close-line"></i></button>
+    </div>
+    <div class="modal-body" style="max-height:75vh;overflow-y:auto;" id="detail-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('modal-asset-detail')">Close</button>
+      <button class="btn btn-primary" onclick="goToMaintenance()"><i class="ri-tools-line"></i> Report Issue</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+  const App = {
+    showToast(message, type = 'success') {
+      let c = document.getElementById('toastContainer');
+      if (!c) { c = document.createElement('div'); c.id = 'toastContainer'; c.className = 'toast-container'; document.body.appendChild(c); }
+      const t = document.createElement('div');
+      t.className = `toast toast-${type === 'error' ? 'danger' : type}`;
+      const icons = { success:'ri-checkbox-circle-fill', danger:'ri-error-warning-fill', warning:'ri-alert-fill', info:'ri-information-line' };
+      t.innerHTML = `<i class="${icons[type]||icons.success}"></i><span>${message}</span>`;
+      c.appendChild(t);
+      setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(10px)'; setTimeout(() => t.remove(), 300); }, 3500);
+    },
+    openModal(id) { const e = document.getElementById(id); if (e) { e.classList.add('open'); document.body.style.overflow = 'hidden'; } },
+    closeModal(id) { const e = document.getElementById(id); if (e) { e.classList.remove('open'); document.body.style.overflow = ''; } }
+  };
+
+  let allAssets = [];
+  let viewingAssetId = null;
+
+  function catIcon(cat) {
+    const m = { Laptops:'ri-macbook-line', Phones:'ri-smartphone-line', Monitors:'ri-tv-2-line', Tablets:'ri-tablet-line', Accessories:'ri-keyboard-line', Furniture:'ri-table-line' };
+    return m[cat] || 'ri-box-3-line';
+  }
+
+  function condBadge(c) {
+    const m = { Excellent:'approved', Good:'approved', Fair:'pending', Poor:'rejected' };
+    return `<span class="badge badge-${m[c]||'brand'}">${c}</span>`;
+  }
+
+  function isReturningSoon(dateStr) {
+    if (!dateStr) return false;
+    const diff = (new Date(dateStr) - new Date()) / (1000*60*60*24);
+    return diff <= 30 && diff >= 0;
+  }
+
+  function renderTable() {
+    const q = document.getElementById('asset-search').value.toLowerCase();
+    const cat = document.getElementById('cat-filter').value;
+    const cond = document.getElementById('cond-filter').value;
+
+    const filtered = allAssets.filter(a =>
+      (!q || [a.name, a.tag, a.serial, a.location].some(f => f.toLowerCase().includes(q))) &&
+      (cat === 'All' || a.category === cat) &&
+      (cond === 'All' || a.condition === cond)
+    );
+
+    document.getElementById('asset-count-badge').textContent = `${filtered.length} asset${filtered.length !== 1 ? 's' : ''}`;
+
+    const tbody = document.getElementById('assets-tbody');
+    tbody.innerHTML = filtered.length ? filtered.map(a => `
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:32px;height:32px;border-radius:var(--radius-sm);background:var(--color-brand-light);color:var(--color-brand);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">
+              <i class="${catIcon(a.category)}"></i>
+            </div>
+            <span style="font-weight:600;color:var(--color-text-primary);">${a.name}</span>
+          </div>
+        </td>
+        <td><span style="font-weight:600;color:var(--color-brand);font-size:12px;">${a.tag}</span></td>
+        <td>${a.category}</td>
+        <td style="font-family:monospace;font-size:11px;color:var(--color-text-secondary);">${a.serial}</td>
+        <td>${condBadge(a.condition)}</td>
+        <td>${a.allocDate}</td>
+        <td style="${isReturningSoon(a.returnDate)?'color:var(--color-warning);font-weight:600;':''}">${a.returnDate}${isReturningSoon(a.returnDate)?' <span style="font-size:10px;">(Soon)</span>':''}</td>
+        <td>${a.location}</td>
+        <td style="text-align:right;">
+          <div style="display:inline-flex;gap:4px;">
+            <button class="btn btn-secondary btn-sm" onclick="viewAssetDetail('${a.id}')"><i class="ri-eye-line"></i> Details</button>
+          </div>
+        </td>
+      </tr>
+    `).join('') : `<tr><td colspan="9"><div class="empty-state"><i class="ri-box-3-line empty-state-icon"></i><div class="empty-state-title">No assets found</div><p class="empty-state-desc">No assets match your current search or filter.</p></div></td></tr>`;
+  }
+
+  function viewAssetDetail(id) {
+    const a = allAssets.find(x => x.id === id);
+    if (!a) return;
+    viewingAssetId = id;
+    document.getElementById('detail-modal-title').textContent = `${a.name} — ${a.tag}`;
+    document.getElementById('detail-modal-body').innerHTML = `
+      <div style="display:flex;gap:16px;align-items:center;margin-bottom:20px;padding:16px;background:var(--bg-primary);border-radius:var(--radius-md);border:1px solid var(--color-border);">
+        <div style="width:64px;height:64px;border-radius:var(--radius-md);background:var(--color-brand-light);color:var(--color-brand);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;">
+          <i class="${catIcon(a.category)}"></i>
+        </div>
+        <div>
+          <h3 style="font-size:16px;font-weight:700;margin-bottom:4px;">${a.name}</h3>
+          <p style="font-size:12px;color:var(--color-text-secondary);">${a.category} · ${a.vendor}</p>
+          <div style="display:flex;gap:8px;margin-top:8px;">${condBadge(a.condition)} <span class="badge badge-active">${a.status}</span></div>
+        </div>
+      </div>
+
+      <div style="background:var(--bg-primary);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:16px;margin-bottom:16px;">
+        <div style="font-size:12px;font-weight:700;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--color-border);">Specifications</div>
+        ${[['Asset Tag',`<span style="font-weight:700;color:var(--color-brand);">${a.tag}</span>`],['Serial Number',`<span style="font-family:monospace;">${a.serial}</span>`],['Category',a.category],['Condition',condBadge(a.condition)],['Location',a.location],['Department',a.department]].map(([l,v])=>`
+          <div class="detail-row" style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span class="detail-label" style="color:var(--color-text-muted);">${l}</span><span class="detail-value">${v}</span></div>
+        `).join('')}
+      </div>
+
+      <div style="background:var(--bg-primary);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:16px;margin-bottom:16px;">
+        <div style="font-size:12px;font-weight:700;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--color-border);">Allocation & Lifecycle</div>
+        ${[['Allocated On',a.allocDate],['Expected Return',`<span style="${isReturningSoon(a.returnDate)?'color:var(--color-warning);font-weight:600;':''}">${a.returnDate}</span>`],['Acquisition Cost','$'+a.cost.toLocaleString()],['Warranty Expiry',a.warranty],['Vendor',a.vendor]].map(([l,v])=>`
+          <div class="detail-row" style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span class="detail-label" style="color:var(--color-text-muted);">${l}</span><span class="detail-value">${v}</span></div>
+        `).join('')}
+      </div>
+
+      <div style="background:var(--bg-primary);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:16px;margin-bottom:16px;">
+        <div style="font-size:12px;font-weight:700;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--color-border);">Allocation History</div>
+        <div class="alloc-timeline" style="padding-left:20px;">
+          <div style="position:relative;font-size:12px;color:var(--color-text-secondary);line-height:1.5;margin-bottom:12px;padding-left:4px;">
+            <strong style="color:var(--color-text-primary);display:block;">Allocated to {{ request.user.username }}</strong>
+            <span style="color:var(--color-text-muted);">${a.allocDate}</span>
+          </div>
+        </div>
+      </div>
+
+      ${a.notes ? `<div style="background:var(--bg-primary);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:14px;"><div style="font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:6px;">Notes</div><p style="font-size:13px;color:var(--color-text-secondary);">${a.notes}</p></div>` : ''}
+    `;
+    App.openModal('modal-asset-detail');
+  }
+
+  function goToMaintenance() {
+    App.closeModal('modal-asset-detail');
+    window.location.href = "{% url 'employee_maintenance' %}";
+  }
+
+  ['asset-search','cat-filter','cond-filter'].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', renderTable);
+    el.addEventListener('change', renderTable);
+  });
+
+  async function loadData() {
+    try {
+      const response = await fetch("{% url 'employee_dashboard_data' %}");
+      const db = await response.json();
+      allAssets = db.myAssets;
+
+      // KPIs
+      document.getElementById('kpi-total').textContent = allAssets.length;
+      document.getElementById('kpi-excellent').textContent = allAssets.filter(a => a.condition === 'Excellent').length;
+      document.getElementById('kpi-due').textContent = allAssets.filter(a => isReturningSoon(a.returnDate)).length;
+      document.getElementById('kpi-repair').textContent = db.maintenance.filter(m => m.status !== 'Resolved').length;
+
+      renderTable();
+    } catch(err) {
+      console.error(err);
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', loadData);
+</script>
+</body>
+</html>

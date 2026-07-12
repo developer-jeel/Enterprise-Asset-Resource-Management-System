@@ -1,0 +1,388 @@
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.http import JsonResponse
+
+from core.decorators import check_login
+from core.models import (
+    Asset,
+    AssetAllocation,
+    AssetTransfer,
+    AssetReturn,
+    MaintenanceRequest,
+    Discrepancy,
+    ActivityLog,
+)
+import datetime
+
+@login_required
+@check_login(['manager'])
+def index(request):
+    # Retrieve all objects for counts
+    assets = Asset.objects.all()
+    allocations = AssetAllocation.objects.all()
+    transfers = AssetTransfer.objects.all()
+    maintenance = MaintenanceRequest.objects.all()
+    returns = AssetReturn.objects.all()
+    discrepancies = Discrepancy.objects.all()
+    activities = ActivityLog.objects.all().order_by('-id')[:5]
+
+    total_count = assets.count()
+    in_use_count = assets.filter(lifecycle='In Use').count()
+    repair_count = assets.filter(lifecycle='Repair').count()
+    
+    pending_count = (
+        allocations.filter(status='Pending').count() +
+        transfers.filter(status='Pending').count() +
+        maintenance.filter(status='Pending').count() +
+        returns.filter(status='Pending').count()
+    )
+    
+    disc_count = discrepancies.filter(status='Pending').count()
+
+    context = {
+        'total_count': total_count,
+        'in_use_count': in_use_count,
+        'repair_count': repair_count,
+        'pending_count': pending_count,
+        'disc_count': disc_count,
+        'activities': activities,
+    }
+    return render(request, 'manager/index.html', context)
+
+@login_required
+@check_login(['manager'])
+def get_dashboard_data(request):
+    assets = Asset.objects.all()
+    allocations = AssetAllocation.objects.all()
+    transfers = AssetTransfer.objects.all()
+    maintenance = MaintenanceRequest.objects.all()
+    returns = AssetReturn.objects.all()
+    discrepancies = Discrepancy.objects.all()
+    activities = ActivityLog.objects.all().order_by('-id')[:5]
+
+    assets_list = []
+    for a in assets:
+        assets_list.append({
+            'id': a.tag,
+            'name': a.name,
+            'category': a.category,
+            'serial': a.serial,
+            'condition': a.condition,
+            'lifecycle': a.lifecycle,
+            'department': a.department or '—',
+            'employee': a.assigned_to.username if a.assigned_to else '—',
+            'location': a.location,
+            'acquired': str(a.acquired),
+            'cost': float(a.cost),
+            'warranty': str(a.warranty) if a.warranty else '—',
+            'vendor': a.vendor or '—',
+            'notes': a.notes or ''
+        })
+
+    alloc_list = []
+    for al in allocations:
+        alloc_list.append({
+            'id': al.allocation_id,
+            'assetId': al.asset.tag if al.asset else '',
+            'assetName': al.asset_name or (al.asset.name if al.asset else ''),
+            'requestedBy': al.requested_by.username,
+            'department': al.department,
+            'requestDate': str(al.request_date),
+            'returnDate': str(al.return_date) if al.return_date else '',
+            'purpose': al.purpose,
+            'status': al.status,
+            'remarks': al.remarks or ''
+        })
+
+    transfers_list = []
+    for t in transfers:
+        transfers_list.append({
+            'id': t.transfer_id,
+            'assetId': t.asset.tag,
+            'assetName': t.asset.name,
+            'from': f"{t.from_employee.username} ({t.from_employee.profile.department or '—'})",
+            'to': f"{t.to_employee.username} ({t.to_dept or '—'})",
+            'reason': t.reason,
+            'requestDate': str(t.request_date),
+            'status': t.status,
+            'remarks': t.remarks or ''
+        })
+
+    maint_list = []
+    for m in maintenance:
+        maint_list.append({
+            'id': m.maintenance_id,
+            'assetId': m.asset.tag,
+            'assetName': m.asset.name,
+            'priority': m.priority,
+            'issue': m.issue,
+            'reportedBy': m.reported_by.username,
+            'reportDate': str(m.report_date),
+            'department': m.department,
+            'technician': m.technician or '',
+            'status': m.status,
+            'estimatedDays': m.estimated_days,
+            'remarks': m.remarks or ''
+        })
+
+    discrepancy_list = []
+    for d in discrepancies:
+        discrepancy_list.append({
+            'id': d.discrepancy_id,
+            'auditId': d.audit_id,
+            'assetId': d.asset.tag,
+            'assetName': d.asset.name,
+            'type': d.type,
+            'severity': d.severity,
+            'description': d.description,
+            'detectedDate': str(d.detected_date),
+            'status': d.status,
+            'resolution': d.resolution or ''
+        })
+
+    returns_list = []
+    for r in returns:
+        returns_list.append({
+            'id': r.return_id,
+            'assetId': r.asset.tag,
+            'assetName': r.asset.name,
+            'employee': r.employee.username,
+            'department': r.department,
+            'expectedReturn': str(r.expected_return),
+            'actualReturn': str(r.actual_return) if r.actual_return else '',
+            'conditionAtReturn': r.condition_at_return or '',
+            'conditionOriginal': r.condition_original or '',
+            'notes': r.notes or '',
+            'status': r.status
+        })
+
+    activities_list = []
+    for act in activities:
+        activities_list.append({
+            'text': act.text,
+            'time': act.time,
+            'type': act.type
+        })
+
+    return JsonResponse({
+        'assets': assets_list,
+        'allocations': alloc_list,
+        'transfers': transfers_list,
+        'maintenance': maint_list,
+        'discrepancies': discrepancy_list,
+        'returns': returns_list,
+        'activities': activities_list
+    })
+
+@login_required
+@check_login(['manager'])
+def assets_view(request):
+    return render(request, 'manager/assets.html')
+
+@login_required
+@check_login(['manager'])
+def save_asset(request):
+    if request.method == 'POST':
+        edit_id = request.POST.get('edit_id')
+        tag = request.POST.get('tag').strip().upper()
+        name = request.POST.get('name').strip()
+        category = request.POST.get('category')
+        serial = request.POST.get('serial').strip()
+        condition = request.POST.get('condition')
+        lifecycle = request.POST.get('lifecycle')
+        department = request.POST.get('department').strip()
+        employee_name = request.POST.get('employee').strip()
+        location = request.POST.get('location').strip()
+        acquired_str = request.POST.get('acquired')
+        cost = float(request.POST.get('cost') or 0)
+        warranty_str = request.POST.get('warranty')
+        vendor = request.POST.get('vendor').strip()
+        notes = request.POST.get('notes').strip()
+
+        assigned_user = None
+        if employee_name and employee_name != '—':
+            assigned_user = User.objects.filter(username=employee_name).first()
+
+        acquired_date = datetime.datetime.strptime(acquired_str, '%Y-%m-%d').date() if acquired_str else datetime.date.today()
+        warranty_date = datetime.datetime.strptime(warranty_str, '%Y-%m-%d').date() if warranty_str and warranty_str != '—' else None
+
+        if edit_id:
+            asset = get_object_or_404(Asset, tag=edit_id)
+            asset.name = name
+            asset.category = category
+            asset.serial = serial
+            asset.condition = condition
+            asset.lifecycle = lifecycle
+            asset.department = department
+            asset.assigned_to = assigned_user
+            asset.location = location
+            asset.acquired = acquired_date
+            asset.cost = cost
+            asset.warranty = warranty_date
+            asset.vendor = vendor
+            asset.notes = notes
+            asset.save()
+            ActivityLog.objects.create(user=request.user, text=f"Asset {asset.tag} ({asset.name}) updated.", time='Just now', type='register')
+            return JsonResponse({'success': True, 'message': 'Asset updated successfully.'})
+        else:
+            if Asset.objects.filter(tag=tag).exists():
+                return JsonResponse({'success': False, 'message': 'Asset tag already exists.'})
+            asset = Asset.objects.create(
+                tag=tag, name=name, category=category, serial=serial, condition=condition,
+                lifecycle=lifecycle, department=department, assigned_to=assigned_user,
+                location=location, acquired=acquired_date, cost=cost, warranty=warranty_date,
+                vendor=vendor, notes=notes
+            )
+            ActivityLog.objects.create(user=request.user, text=f"New Asset {asset.tag} ({asset.name}) registered.", time='Just now', type='register')
+            return JsonResponse({'success': True, 'message': 'Asset registered successfully.'})
+
+    return JsonResponse({'success': False, 'message': 'Invalid HTTP request method.'})
+
+@login_required
+@check_login(['manager'])
+def retire_asset(request):
+    if request.method == 'POST':
+        tag = request.POST.get('tag')
+        asset = get_object_or_404(Asset, tag=tag)
+        asset.lifecycle = 'Retired'
+        asset.save()
+        ActivityLog.objects.create(user=request.user, text=f"Asset {asset.tag} marked as Retired.", time='Just now', type='register')
+        return JsonResponse({'success': True})
+    return JsonResponse({'success': False})
+
+@login_required
+@check_login(['manager'])
+def transfers_view(request):
+    return render(request, 'manager/transfers.html')
+
+@login_required
+@check_login(['manager'])
+def handle_allocation(request):
+    if request.method == 'POST':
+        req_id = request.POST.get('id')
+        action = request.POST.get('action') # Approved, Rejected
+        remarks = request.POST.get('remarks', '')
+        alloc = get_object_or_404(AssetAllocation, allocation_id=req_id)
+        alloc.status = action
+        alloc.remarks = remarks
+        alloc.save()
+        
+        # If approved, assign the asset
+        if action == 'Approved' and alloc.asset:
+            alloc.asset.assigned_to = alloc.requested_by
+            alloc.asset.department = alloc.department
+            alloc.asset.lifecycle = 'In Use'
+            alloc.asset.save()
+
+        ActivityLog.objects.create(user=request.user, text=f"Allocation Request #{req_id} status updated to {action}.", time='Just now', type='transfer')
+        return JsonResponse({'success': True})
+    return JsonResponse({'success': False})
+
+@login_required
+@check_login(['manager'])
+def handle_transfer(request):
+    if request.method == 'POST':
+        req_id = request.POST.get('id')
+        action = request.POST.get('action') # Approved, Rejected
+        remarks = request.POST.get('remarks', '')
+        trans = get_object_or_404(AssetTransfer, transfer_id=req_id)
+        trans.status = action
+        trans.remarks = remarks
+        trans.approved_by = request.user
+        trans.save()
+        
+        # If approved, update asset assignment
+        if action == 'Approved':
+            trans.asset.assigned_to = trans.to_employee
+            trans.asset.department = trans.to_dept or trans.asset.department
+            trans.asset.save()
+
+        ActivityLog.objects.create(user=request.user, text=f"Transfer Request #{req_id} status updated to {action}.", time='Just now', type='transfer')
+        return JsonResponse({'success': True})
+    return JsonResponse({'success': False})
+
+@login_required
+@check_login(['manager'])
+def maintenance_view(request):
+    return render(request, 'manager/maintenance.html')
+
+@login_required
+@check_login(['manager'])
+def handle_maintenance(request):
+    if request.method == 'POST':
+        req_id = request.POST.get('id')
+        action = request.POST.get('action') # Approved, In Progress, Resolved, Rejected
+        technician = request.POST.get('technician', '')
+        est_days = int(request.POST.get('estimated_days') or 0)
+        remarks = request.POST.get('remarks', '')
+        
+        maint = get_object_or_404(MaintenanceRequest, maintenance_id=req_id)
+        maint.status = action
+        if technician:
+            maint.technician = technician
+        if est_days:
+            maint.estimated_days = est_days
+        maint.remarks = remarks
+        maint.save()
+
+        # Update asset condition/lifecycle if resolved
+        if action == 'Resolved':
+            maint.asset.lifecycle = 'In Use'
+            maint.asset.condition = 'Excellent'
+            maint.asset.save()
+        elif action == 'Approved' or action == 'In Progress':
+            maint.asset.lifecycle = 'Repair'
+            maint.asset.save()
+
+        ActivityLog.objects.create(user=request.user, text=f"Maintenance Request #{req_id} updated to {action}.", time='Just now', type='repair')
+        return JsonResponse({'success': True})
+    return JsonResponse({'success': False})
+
+@login_required
+@check_login(['manager'])
+def discrepancies_view(request):
+    return render(request, 'manager/discrepancies.html')
+
+@login_required
+@check_login(['manager'])
+def resolve_discrepancy(request):
+    if request.method == 'POST':
+        req_id = request.POST.get('id')
+        resolution = request.POST.get('resolution')
+        disc = get_object_or_404(Discrepancy, discrepancy_id=req_id)
+        disc.status = 'Resolved'
+        disc.resolution = resolution
+        disc.save()
+        ActivityLog.objects.create(user=request.user, text=f"Discrepancy #{req_id} resolved.", time='Just now', type='audit')
+        return JsonResponse({'success': True})
+    return JsonResponse({'success': False})
+
+@login_required
+@check_login(['manager'])
+def returns_view(request):
+    return render(request, 'manager/returns.html')
+
+@login_required
+@check_login(['manager'])
+def handle_return(request):
+    if request.method == 'POST':
+        req_id = request.POST.get('id')
+        action = request.POST.get('action') # Approved, Rejected
+        notes = request.POST.get('notes', '')
+        ret = get_object_or_404(AssetReturn, return_id=req_id)
+        ret.status = action
+        ret.actual_return = datetime.date.today()
+        ret.notes = notes
+        ret.save()
+        
+        # If return is approved, remove asset assignment and put to Storage
+        if action == 'Approved':
+            ret.asset.assigned_to = None
+            ret.asset.department = '—'
+            ret.asset.lifecycle = 'Storage'
+            ret.asset.save()
+
+        ActivityLog.objects.create(user=request.user, text=f"Return Request #{req_id} updated to {action}.", time='Just now', type='return')
+        return JsonResponse({'success': True})
+    return JsonResponse({'success': False})

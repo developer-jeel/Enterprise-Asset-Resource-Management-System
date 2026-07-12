@@ -1,0 +1,170 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notifications — AssetFlow Employee Portal</title>
+  <meta name="description" content="View system and workflow notifications in the AssetFlow ERP employee portal.">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <link rel="stylesheet" href="{% static 'css/employee.css' %}">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-logo">AF</div>
+    <div class="sidebar-brand-text">
+      <span class="sidebar-app-name">AssetFlow</span>
+      <span class="sidebar-app-sub">Employee</span>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="{% url 'employee_index' %}" class="nav-link"><i class="ri-dashboard-line"></i> Dashboard</a>
+    <a href="{% url 'employee_assets' %}" class="nav-link"><i class="ri-box-3-line"></i> My Assets</a>
+    <a href="{% url 'employee_bookings' %}" class="nav-link"><i class="ri-calendar-event-line"></i> Resource Booking</a>
+    <a href="{% url 'employee_maintenance' %}" class="nav-link"><i class="ri-tools-line"></i> Maintenance</a>
+    <a href="{% url 'employee_requests' %}" class="nav-link"><i class="ri-arrow-go-back-line"></i> Return & Transfer</a>
+    <a href="{% url 'employee_leave' %}" class="nav-link"><i class="ri-calendar-todo-line"></i> Leave Requests</a>
+    <a href="{% url 'employee_notifications' %}" class="nav-link active"><i class="ri-notification-3-line"></i> Notifications</a>
+    <a href="{% url 'employee_profile' %}" class="nav-link"><i class="ri-user-settings-line"></i> My Profile</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-profile">
+      <div class="user-avatar">EM</div>
+      <div class="user-info">
+        <span class="user-name">{{ request.user.username }}</span>
+        <span class="user-role">{{ request.user.profile.department }}</span>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<div class="main-content">
+  <header class="top-header">
+    <div class="header-left">
+      <h1 class="header-title">Notifications</h1>
+    </div>
+    <div class="header-right">
+      <span class="dept-pill">{{ request.user.profile.department }}</span>
+      <a href="{% url 'logout' %}" class="logout-btn" style="text-decoration:none; display:inline-block; line-height:30px; text-align:center;">
+        <i class="ri-logout-box-line"></i> Sign Out
+      </a>
+    </div>
+  </header>
+
+  <main class="page-body animate-slide-right">
+
+    <!-- KPI Row -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px;">
+      <div class="card card-kpi">
+        <div class="kpi-header"><span class="kpi-title">Total Notifications</span><div class="kpi-icon"><i class="ri-notification-3-line"></i></div></div>
+        <span class="kpi-value" id="kpi-total">0</span>
+      </div>
+      <div class="card card-kpi active-kpi">
+        <div class="kpi-header"><span class="kpi-title">Unread</span><div class="kpi-icon"><i class="ri-mail-unread-line"></i></div></div>
+        <span class="kpi-value" id="kpi-unread">0</span>
+      </div>
+      <div class="card card-kpi">
+        <div class="kpi-header"><span class="kpi-title">Read</span><div class="kpi-icon"><i class="ri-mail-open-line"></i></div></div>
+        <span class="kpi-value" id="kpi-read">0</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">All Notifications</span>
+        <button class="btn btn-secondary btn-sm" onclick="markAllRead()"><i class="ri-checkbox-multiple-line"></i> Mark all as read</button>
+      </div>
+      <div id="notifications-list"></div>
+      <div id="notifications-empty" style="display:none;text-align:center;padding:40px 0;color:var(--color-text-muted);">
+        <i class="ri-notification-off-line" style="font-size:28px;display:block;margin-bottom:8px;"></i>
+        No notifications yet.
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+  const App = {
+    showToast(message, type = 'success') {
+      let c = document.getElementById('toastContainer');
+      const t = document.createElement('div');
+      t.className = `toast toast-${type === 'error' ? 'danger' : type}`;
+      t.textContent = message;
+      c.appendChild(t);
+      setTimeout(() => t.remove(), 3500);
+    }
+  };
+
+  let latestNotifications = [];
+
+  async function loadNotifications() {
+    try {
+      const response = await fetch("{% url 'employee_notifications_data' %}");
+      const data = await response.json();
+      latestNotifications = data.notifications;
+
+      document.getElementById('kpi-total').textContent = latestNotifications.length;
+      document.getElementById('kpi-unread').textContent = data.unreadCount;
+      document.getElementById('kpi-read').textContent = latestNotifications.length - data.unreadCount;
+
+      const listEl = document.getElementById('notifications-list');
+      const emptyEl = document.getElementById('notifications-empty');
+
+      if (latestNotifications.length === 0) {
+        listEl.innerHTML = '';
+        emptyEl.style.display = 'block';
+        return;
+      }
+      emptyEl.style.display = 'none';
+
+      listEl.innerHTML = latestNotifications.map(n => `
+        <div style="display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid var(--color-border);${n.isRead ? '' : 'background:var(--color-brand-light);'}">
+          <div style="width:36px;height:36px;flex-shrink:0;border-radius:var(--radius-sm);background:var(--bg-primary);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--color-brand);">
+            <i class="ri-notification-3-line"></i>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-weight:600;font-size:13px;color:var(--color-text-primary);">${n.title}</span>
+              ${n.isRead ? '' : '<span class="badge badge-brand">New</span>'}
+            </div>
+            <p style="font-size:13px;color:var(--color-text-secondary);margin-top:4px;">${n.message}</p>
+            <span style="font-size:11px;color:var(--color-text-muted);">${n.createdAt}</span>
+          </div>
+          ${n.isRead ? '' : `<button class="btn btn-secondary btn-sm" onclick="markRead(${n.id})">Mark read</button>`}
+        </div>
+      `).join('');
+    } catch (err) { console.error(err); }
+  }
+
+  async function markRead(id) {
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    formData.append('notification_id', id);
+    try {
+      const res = await fetch("{% url 'employee_mark_notification_read' %}", { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.success) loadNotifications();
+    } catch (err) { App.showToast('Something went wrong. Please try again.', 'error'); }
+  }
+
+  async function markAllRead() {
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    formData.append('notification_id', 'all');
+    try {
+      const res = await fetch("{% url 'employee_mark_notification_read' %}", { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.success) { App.showToast('All notifications marked as read.', 'success'); loadNotifications(); }
+    } catch (err) { App.showToast('Something went wrong. Please try again.', 'error'); }
+  }
+
+  window.addEventListener('DOMContentLoaded', loadNotifications);
+</script>
+</body>
+</html>

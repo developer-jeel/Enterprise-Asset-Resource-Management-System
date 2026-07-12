@@ -1,0 +1,507 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Return & Transfer — AssetFlow Employee Portal</title>
+  <meta name="description" content="Initiate asset return and transfer requests in the AssetFlow ERP employee portal.">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <link rel="stylesheet" href="{% static 'css/employee.css' %}">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-logo">AF</div>
+    <div class="sidebar-brand-text">
+      <span class="sidebar-app-name">AssetFlow</span>
+      <span class="sidebar-app-sub">Employee</span>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="{% url 'employee_index' %}" class="nav-link"><i class="ri-dashboard-line"></i> Dashboard</a>
+    <a href="{% url 'employee_assets' %}" class="nav-link"><i class="ri-box-3-line"></i> My Assets</a>
+    <a href="{% url 'employee_bookings' %}" class="nav-link"><i class="ri-calendar-event-line"></i> Resource Booking</a>
+    <a href="{% url 'employee_maintenance' %}" class="nav-link"><i class="ri-tools-line"></i> Maintenance</a>
+    <a href="{% url 'employee_requests' %}" class="nav-link active"><i class="ri-arrow-go-back-line"></i> Return & Transfer</a>
+    <a href="{% url 'employee_leave' %}" class="nav-link"><i class="ri-calendar-todo-line"></i> Leave Requests</a>
+    <a href="{% url 'employee_notifications' %}" class="nav-link"><i class="ri-notification-3-line"></i> Notifications</a>
+    <a href="{% url 'employee_profile' %}" class="nav-link"><i class="ri-user-settings-line"></i> My Profile</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-profile">
+      <div class="user-avatar">EM</div>
+      <div class="user-info">
+        <span class="user-name">{{ request.user.username }}</span>
+        <span class="user-role">{{ request.user.profile.department }}</span>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<div class="main-content">
+  <header class="top-header">
+    <div class="header-left">
+      <h1 class="header-title">Return & Transfer Requests</h1>
+    </div>
+    <div class="header-right">
+      <span class="dept-pill">{{ request.user.profile.department }}</span>
+      <a href="{% url 'logout' %}" class="logout-btn" style="text-decoration:none; display:inline-block; line-height:30px; text-align:center;">
+        <i class="ri-logout-box-line"></i> Sign Out
+      </a>
+    </div>
+  </header>
+
+  <main class="page-body animate-slide-right">
+
+    <!-- KPI Row -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px;">
+      <div class="card card-kpi">
+        <div class="kpi-header"><span class="kpi-title">Total Requests</span><div class="kpi-icon"><i class="ri-file-list-3-line"></i></div></div>
+        <span class="kpi-value" id="kpi-total">0</span>
+      </div>
+      <div class="card card-kpi active-kpi">
+        <div class="kpi-header"><span class="kpi-title">Pending</span><div class="kpi-icon"><i class="ri-time-line"></i></div></div>
+        <span class="kpi-value" id="kpi-pending">0</span>
+      </div>
+      <div class="card card-kpi">
+        <div class="kpi-header"><span class="kpi-title">Approved</span><div class="kpi-icon"><i class="ri-checkbox-circle-line"></i></div></div>
+        <span class="kpi-value" id="kpi-approved">0</span>
+      </div>
+      <div class="card card-kpi">
+        <div class="kpi-header"><span class="kpi-title">Rejected</span><div class="kpi-icon"><i class="ri-close-circle-line"></i></div></div>
+        <span class="kpi-value" id="kpi-rejected">0</span>
+      </div>
+    </div>
+
+    <!-- Page Layout -->
+    <div class="dashboard-layout">
+
+      <!-- LEFT: Request Form -->
+      <div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">New Request</span>
+          </div>
+
+          <!-- Request Type Tabs -->
+          <div class="request-type-tabs">
+            <button class="req-tab active" id="tab-return" onclick="switchReqTab('Return')">
+              <i class="ri-arrow-go-back-line"></i> Asset Return
+            </button>
+            <button class="req-tab" id="tab-transfer" onclick="switchReqTab('Transfer')">
+              <i class="ri-shuffle-line"></i> Asset Transfer
+            </button>
+          </div>
+
+          <form id="req-form" onsubmit="handleReqSubmit(event)">
+            <input type="hidden" id="req-type" value="Return">
+
+            <div class="form-group">
+              <label class="form-label">Select Asset *</label>
+              <select id="req-asset" class="form-control" required>
+                <option value="">— Choose an assigned asset —</option>
+              </select>
+            </div>
+
+            <!-- Asset preview -->
+            <div id="req-asset-preview" style="display:none;background:var(--bg-primary);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:12px;margin-bottom:16px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--color-brand-light);color:var(--color-brand);display:flex;align-items:center;justify-content:center;font-size:16px;" id="req-preview-icon">
+                  <i class="ri-box-3-line"></i>
+                </div>
+                <div>
+                  <div style="font-size:13px;font-weight:600;" id="req-preview-name">—</div>
+                  <div style="font-size:11px;color:var(--color-text-secondary);" id="req-preview-tag">—</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- RETURN FIELDS -->
+            <div id="return-fields">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Proposed Return Date *</label>
+                  <input type="date" id="r-date" class="form-control" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Asset Condition at Return</label>
+                  <select id="r-condition" class="form-control">
+                    <option>Excellent</option><option>Good</option><option>Fair</option><option>Poor</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Reason for Return *</label>
+                <textarea id="r-reason" class="form-control" rows="3" placeholder="Why are you returning this asset? e.g. role change, no longer needed, damaged…"></textarea>
+              </div>
+            </div>
+
+            <!-- TRANSFER FIELDS -->
+            <div id="transfer-fields" style="display:none;">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Transfer To (Employee Username) *</label>
+                  <input id="t-employee" class="form-control" placeholder="e.g. alice">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Recipient Department *</label>
+                  <select id="t-dept" class="form-control">
+                    <option>Engineering</option><option>Marketing</option><option>Finance</option>
+                    <option>Operations</option><option>HR</option><option>QA</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Reason for Transfer *</label>
+                <textarea id="t-reason" class="form-control" rows="3" placeholder="Why is this asset being transferred? e.g. shared project, role reassignment…"></textarea>
+              </div>
+            </div>
+
+            <div class="modal-footer" style="padding:0;border:none;margin-top:20px;">
+              <button type="button" class="btn btn-secondary" onclick="resetReqForm()">Reset</button>
+              <button type="submit" class="btn btn-primary" id="req-submit-btn"><i class="ri-send-plane-line"></i> Submit Return Request</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- RIGHT: Request History -->
+      <div class="column-gap-32">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">My Request History</span>
+            <div class="filter-group">
+              <select id="req-type-filter" class="filter-select">
+                <option value="All">All Types</option>
+                <option>Return</option><option>Transfer</option>
+              </select>
+              <select id="req-status-filter" class="filter-select">
+                <option value="All">All Statuses</option>
+                <option>Pending</option><option>Approved</option><option>Rejected</option>
+              </select>
+            </div>
+          </div>
+          <div id="req-history-cards" style="display:flex;flex-direction:column;gap:14px;"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- REQUEST CONFIRM MODAL -->
+<div class="modal-overlay" id="modal-req-confirm">
+  <div class="modal-container" style="max-width:440px;">
+    <div class="modal-header">
+      <span class="modal-title" id="req-confirm-title"><i class="ri-send-plane-line"></i> Confirm Request</span>
+      <button class="modal-close-btn" onclick="App.closeModal('modal-req-confirm')"><i class="ri-close-line"></i></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;margin-bottom:16px;">Review and confirm your request details:</p>
+      <div id="req-confirm-body" style="background:var(--bg-primary);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:14px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('modal-req-confirm')">Go Back</button>
+      <button class="btn btn-primary" onclick="finaliseReq()"><i class="ri-send-plane-line"></i> Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- REQUEST DETAIL MODAL -->
+<div class="modal-overlay" id="modal-req-detail">
+  <div class="modal-container" style="max-width:520px;">
+    <div class="modal-header">
+      <span class="modal-title">Request Details</span>
+      <button class="modal-close-btn" onclick="App.closeModal('modal-req-detail')"><i class="ri-close-line"></i></button>
+    </div>
+    <div class="modal-body" style="max-height:72vh;overflow-y:auto;" id="req-detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('modal-req-detail')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+  const App = {
+    showToast(message, type = 'success') {
+      let c = document.getElementById('toastContainer');
+      if (!c) { c = document.createElement('div'); c.id = 'toastContainer'; c.className = 'toast-container'; document.body.appendChild(c); }
+      const t = document.createElement('div');
+      t.className = `toast toast-${type === 'error' ? 'danger' : type}`;
+      const icons = { success:'ri-checkbox-circle-fill', danger:'ri-error-warning-fill', warning:'ri-alert-fill', info:'ri-information-line' };
+      t.innerHTML = `<i class="${icons[type]||icons.success}"></i><span>${message}</span>`;
+      c.appendChild(t);
+      setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(10px)'; setTimeout(() => t.remove(), 300); }, 3500);
+    },
+    openModal(id) { const e = document.getElementById(id); if (e) { e.classList.add('open'); document.body.style.overflow = 'hidden'; } },
+    closeModal(id) { const e = document.getElementById(id); if (e) { e.classList.remove('open'); document.body.style.overflow = ''; } }
+  };
+
+  let db = { myAssets: [], requests: [] };
+  let pendingReq = null;
+  let currentTab = 'Return';
+
+  function catIcon(cat) {
+    const m = { Laptops:'ri-macbook-line', Phones:'ri-smartphone-line', Monitors:'ri-tv-2-line', Tablets:'ri-tablet-line', Accessories:'ri-keyboard-line', Furniture:'ri-table-line' };
+    return m[cat] || 'ri-box-3-line';
+  }
+
+  function switchReqTab(type) {
+    currentTab = type;
+    document.getElementById('req-type').value = type;
+    document.getElementById('tab-return').className = `req-tab ${type==='Return'?'active':''}`;
+    document.getElementById('tab-transfer').className = `req-tab ${type==='Transfer'?'active':''}`;
+    
+    const returnDateObj = document.getElementById('r-date');
+    const returnReasonObj = document.getElementById('r-reason');
+    const tEmployeeObj = document.getElementById('t-employee');
+    const tReasonObj = document.getElementById('t-reason');
+    
+    if (type === 'Return') {
+      document.getElementById('return-fields').style.display = '';
+      document.getElementById('transfer-fields').style.display = 'none';
+      returnDateObj.required = true;
+      returnReasonObj.required = true;
+      tEmployeeObj.required = false;
+      tReasonObj.required = false;
+    } else {
+      document.getElementById('return-fields').style.display = 'none';
+      document.getElementById('transfer-fields').style.display = '';
+      returnDateObj.required = false;
+      returnReasonObj.required = false;
+      tEmployeeObj.required = true;
+      tReasonObj.required = true;
+    }
+    
+    document.getElementById('req-submit-btn').innerHTML = `<i class="ri-send-plane-line"></i> Submit ${type} Request`;
+  }
+
+  document.getElementById('req-asset').addEventListener('change', function() {
+    const asset = db.myAssets.find(a => a.id === this.value);
+    const preview = document.getElementById('req-asset-preview');
+    if (asset) {
+      document.getElementById('req-preview-icon').innerHTML = `<i class="${catIcon(asset.category)}"></i>`;
+      document.getElementById('req-preview-name').textContent = asset.name;
+      document.getElementById('req-preview-tag').textContent = `${asset.tag} · ${asset.location}`;
+      preview.style.display = '';
+    } else {
+      preview.style.display = 'none';
+    }
+  });
+
+  function resetReqForm() {
+    document.getElementById('req-form').reset();
+    document.getElementById('req-asset-preview').style.display = 'none';
+    switchReqTab('Return');
+  }
+
+  function handleReqSubmit(e) {
+    e.preventDefault();
+    const assetId = document.getElementById('req-asset').value;
+    const type = currentTab;
+    const asset = db.myAssets.find(a => a.id === assetId);
+
+    if (!asset) { App.showToast('Please select an asset.', 'warning'); return; }
+
+    if (type === 'Return') {
+      const reason = document.getElementById('r-reason').value.trim();
+      const date = document.getElementById('r-date').value;
+      const cond = document.getElementById('r-condition').value;
+      if (!reason || !date) { App.showToast('Please fill all required return fields.', 'warning'); return; }
+      pendingReq = { type, assetId, assetName: asset.name, reason, returnDate: date, condition: cond };
+      document.getElementById('req-confirm-body').innerHTML = `
+        <div class="detail-row" style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span class="detail-label">Type</span><span class="detail-value"><span class="badge badge-brand">Return</span></span></div>
+        <div class="detail-row" style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span class="detail-label">Asset</span><span class="detail-value" style="font-weight:600;">${asset.name}</span></div>
+        <div class="detail-row" style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span class="detail-label">Asset Tag</span><span class="detail-value">${asset.tag}</span></div>
+        <div class="detail-row" style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span class="detail-label">Return Date</span><span class="detail-value">${date}</span></div>
+        <div class="detail-row" style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span class="detail-label">Condition</span><span class="detail-value">${cond}</span></div>
+        <div class="detail-row" style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span class="detail-label">Reason</span><span class="detail-value">${reason}</span></div>
+      `;
+    } else {
+      const toEmp = document.getElementById('t-employee').value.trim();
+      const toDept = document.getElementById('t-dept').value;
+      const reason = document.getElementById('t-reason').value.trim();
+      if (!toEmp || !reason) { App.showToast('Please fill all required transfer fields.', 'warning'); return; }
+      pendingReq = { type, assetId, assetName: asset.name, toEmployee: toEmp, toDept, reason };
+      document.getElementById('req-confirm-body').innerHTML = `
+        <div class="detail-row" style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span class="detail-label">Type</span><span class="detail-value"><span class="badge badge-info">Transfer</span></span></div>
+        <div class="detail-row" style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span class="detail-label">Asset</span><span class="detail-value" style="font-weight:600;">${asset.name}</span></div>
+        <div class="detail-row" style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span class="detail-label">Transfer To</span><span class="detail-value">${toEmp}</span></div>
+        <div class="detail-row" style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span class="detail-label">Department</span><span class="detail-value">${toDept}</span></div>
+        <div class="detail-row" style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span class="detail-label">Reason</span><span class="detail-value">${reason}</span></div>
+      `;
+    }
+    document.getElementById('req-confirm-title').innerHTML = `<i class="ri-send-plane-line"></i> Confirm ${type} Request`;
+    App.openModal('modal-req-confirm');
+  }
+
+  async function finaliseReq() {
+    if (!pendingReq) return;
+    
+    const formData = new FormData();
+    formData.append('request_type', pendingReq.type.toLowerCase());
+    formData.append('asset_tag', pendingReq.assetId);
+    
+    if (pendingReq.type === 'Return') {
+        formData.append('return_date', pendingReq.returnDate);
+        formData.append('condition', pendingReq.condition);
+        formData.append('reason', pendingReq.reason);
+    } else {
+        formData.append('to_employee_username', pendingReq.toEmployee);
+        formData.append('to_department', pendingReq.toDept);
+        formData.append('reason', pendingReq.reason);
+    }
+    
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+    try {
+      const res = await fetch("{% url 'employee_submit_request' %}", { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.success) {
+        App.closeModal('modal-req-confirm');
+        App.showToast(data.message, 'success');
+        resetReqForm();
+        loadData();
+      } else {
+        App.showToast(data.message, 'danger');
+      }
+    } catch(err) {
+      console.error(err);
+    }
+    pendingReq = null;
+  }
+
+  function updateKPIs() {
+    document.getElementById('kpi-total').textContent = db.requests.length;
+    document.getElementById('kpi-pending').textContent = db.requests.filter(r=>r.status==='Pending').length;
+    document.getElementById('kpi-approved').textContent = db.requests.filter(r=>r.status==='Approved').length;
+    document.getElementById('kpi-rejected').textContent = db.requests.filter(r=>r.status==='Rejected').length;
+  }
+
+  function renderHistory() {
+    const tf = document.getElementById('req-type-filter').value;
+    const sf = document.getElementById('req-status-filter').value;
+    const filtered = db.requests.filter(r =>
+      (tf === 'All' || r.type === tf) &&
+      (sf === 'All' || r.status === sf)
+    );
+    const container = document.getElementById('req-history-cards');
+    if (!filtered.length) {
+      container.innerHTML = `<div class="empty-state"><i class="ri-file-list-3-line empty-state-icon"></i><div class="empty-state-title">No requests found</div><p class="empty-state-desc">No return or transfer requests match your filters.</p></div>`;
+      return;
+    }
+    container.innerHTML = filtered.map(r => `
+      <div style="background:var(--bg-surface);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:18px;box-shadow:var(--shadow-sm);transition:all 0.2s ease;" onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow='var(--shadow-sm)'">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;gap:12px;">
+          <div>
+            <div style="font-weight:700;font-size:14px;color:var(--color-text-primary);">${r.assetName}</div>
+            <div style="font-size:11px;color:var(--color-brand);font-weight:600;margin-top:2px;">${r.id}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
+            <span class="badge badge-${r.type==='Return'?'brand':'info'}">${r.type}</span>
+            <span class="badge badge-${r.status==='Approved'?'approved':r.status==='Rejected'?'rejected':'pending'}">${r.status}</span>
+          </div>
+        </div>
+
+        <div style="font-size:12px;color:var(--color-text-secondary);background:var(--bg-primary);border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:12px;line-height:1.5;">
+          ${r.reason}
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <span style="font-size:11px;color:var(--color-text-muted);">Submitted ${r.submittedDate}</span>
+          <button class="btn btn-secondary btn-sm" onclick="viewReqDetail('${r.id}')"><i class="ri-eye-line"></i> Details & Timeline</button>
+        </div>
+
+        ${r.status !== 'Pending' && r.remarks ? `
+          <div style="margin-top:10px;font-size:12px;padding:8px 12px;border-radius:var(--radius-sm);background:${r.status==='Approved'?'var(--color-success-light)':'var(--color-danger-light)'};color:${r.status==='Approved'?'var(--color-success)':'var(--color-danger)'};border:1px solid ${r.status==='Approved'?'var(--color-success)':'var(--color-danger)'};">
+            <i class="${r.status==='Approved'?'ri-checkbox-circle-line':'ri-close-circle-line'}"></i> ${r.remarks}
+          </div>
+        ` : ''}
+      </div>
+    `).join('');
+  }
+
+  function viewReqDetail(id) {
+    const r = db.requests.find(x => x.id === id);
+    if (!r) return;
+
+    const isApproved = r.status === 'Approved';
+    const isRejected = r.status === 'Rejected';
+
+    const timelineSteps = [
+      { label: 'Request Submitted', date: r.submittedDate, done: true, note: 'Your request has been received.' },
+      { label: 'Under Review', date: r.submittedDate !== '' ? 'In queue' : '—', done: true, note: 'Asset Manager is reviewing your request.' },
+      { label: isRejected ? 'Rejected' : 'Approved', date: isApproved||isRejected ? 'Processed' : 'Pending', done: isApproved||isRejected, note: isApproved ? r.remarks||'Your request has been approved.' : isRejected ? r.remarks||'Your request was rejected.' : 'Awaiting decision…' },
+    ];
+
+    document.getElementById('req-detail-body').innerHTML = `
+      <div style="background:var(--bg-primary);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:14px;margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Request Details</div>
+        <div class="detail-row" style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span class="detail-label">Request ID</span><span class="detail-value" style="font-weight:600;color:var(--color-brand);">${r.id}</span></div>
+        <div class="detail-row" style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span class="detail-label">Type</span><span class="detail-value"><span class="badge badge-${r.type==='Return'?'brand':'info'}">${r.type}</span></span></div>
+        <div class="detail-row" style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span class="detail-label">Asset</span><span class="detail-value">${r.assetName}</span></div>
+        <div class="detail-row" style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span class="detail-label">Submitted</span><span class="detail-value">${r.submittedDate}</span></div>
+        <div class="detail-row" style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span class="detail-label">Status</span><span class="detail-value"><span class="badge badge-${r.status==='Approved'?'approved':r.status==='Rejected'?'rejected':'pending'}">${r.status}</span></span></div>
+        ${r.type==='Return' && r.returnDate ? `<div class="detail-row" style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span class="detail-label">Return Date</span><span class="detail-value">${r.returnDate}</span></div>` : ''}
+        ${r.type==='Transfer' && r.toEmployee ? `<div class="detail-row" style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span class="detail-label">To Employee</span><span class="detail-value">${r.toEmployee} (${r.toDept})</span></div>` : ''}
+        <div class="detail-row" style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:4px;"><span class="detail-label">Reason</span><span class="detail-value">${r.reason}</span></div>
+      </div>
+      <div style="background:var(--bg-primary);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:14px;margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:14px;">Request Progress</div>
+        <div class="req-timeline" style="border-left: 2px solid var(--color-border); margin-left: 10px; padding-left: 14px;">
+          ${timelineSteps.map(step => `
+            <div class="req-event ${step.done?'done':'pending'}" style="position:relative; margin-bottom:16px;">
+              <div style="position:absolute; left:-21px; top:2px; width:12px; height:12px; border-radius:50%; background:${step.done?'var(--color-brand)':'var(--color-border)'};"></div>
+              <div class="req-event-label" style="font-weight:600; font-size:13px;">${step.label}</div>
+              <div class="req-event-time" style="font-size:11px; color:var(--color-text-muted);">${step.date}</div>
+              <div style="font-size:12px;color:var(--color-text-secondary);margin-top:2px;">${step.note}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+    App.openModal('modal-req-detail');
+  }
+
+  ['req-type-filter','req-status-filter'].forEach(id => {
+    document.getElementById(id).addEventListener('change', renderHistory);
+  });
+
+  async function loadData() {
+    try {
+      const response = await fetch("{% url 'employee_dashboard_data' %}");
+      db = await response.json();
+      
+      // Populate asset dropdown
+      const select = document.getElementById('req-asset');
+      select.innerHTML = '<option value="">— Choose an assigned asset —</option>';
+      db.myAssets.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a.id;
+        opt.textContent = `${a.name} (${a.tag})`;
+        select.appendChild(opt);
+      });
+
+      updateKPIs();
+      renderHistory();
+    } catch(err) {
+      console.error(err);
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    // Default return date to today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('r-date').value = today;
+
+    // Load data from server
+    loadData();
+  });
+</script>
+</body>
+</html>

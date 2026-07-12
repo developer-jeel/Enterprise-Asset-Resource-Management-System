@@ -1,0 +1,212 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leave Requests — AssetFlow Employee Portal</title>
+  <meta name="description" content="Apply for and track leave requests in the AssetFlow ERP employee portal.">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <link rel="stylesheet" href="{% static 'css/employee.css' %}">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-logo">AF</div>
+    <div class="sidebar-brand-text">
+      <span class="sidebar-app-name">AssetFlow</span>
+      <span class="sidebar-app-sub">Employee</span>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="{% url 'employee_index' %}" class="nav-link"><i class="ri-dashboard-line"></i> Dashboard</a>
+    <a href="{% url 'employee_assets' %}" class="nav-link"><i class="ri-box-3-line"></i> My Assets</a>
+    <a href="{% url 'employee_bookings' %}" class="nav-link"><i class="ri-calendar-event-line"></i> Resource Booking</a>
+    <a href="{% url 'employee_maintenance' %}" class="nav-link"><i class="ri-tools-line"></i> Maintenance</a>
+    <a href="{% url 'employee_requests' %}" class="nav-link"><i class="ri-arrow-go-back-line"></i> Return & Transfer</a>
+    <a href="{% url 'employee_leave' %}" class="nav-link active"><i class="ri-calendar-todo-line"></i> Leave Requests</a>
+    <a href="{% url 'employee_notifications' %}" class="nav-link"><i class="ri-notification-3-line"></i> Notifications</a>
+    <a href="{% url 'employee_profile' %}" class="nav-link"><i class="ri-user-settings-line"></i> My Profile</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-profile">
+      <div class="user-avatar">EM</div>
+      <div class="user-info">
+        <span class="user-name">{{ request.user.username }}</span>
+        <span class="user-role">{{ request.user.profile.department }}</span>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<div class="main-content">
+  <header class="top-header">
+    <div class="header-left">
+      <h1 class="header-title">Leave Requests</h1>
+    </div>
+    <div class="header-right">
+      <span class="dept-pill">{{ request.user.profile.department }}</span>
+      <a href="{% url 'logout' %}" class="logout-btn" style="text-decoration:none; display:inline-block; line-height:30px; text-align:center;">
+        <i class="ri-logout-box-line"></i> Sign Out
+      </a>
+    </div>
+  </header>
+
+  <main class="page-body animate-slide-right">
+
+    <!-- KPI Row -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px;">
+      <div class="card card-kpi">
+        <div class="kpi-header"><span class="kpi-title">Total Requests</span><div class="kpi-icon"><i class="ri-calendar-todo-line"></i></div></div>
+        <span class="kpi-value" id="kpi-total">0</span>
+      </div>
+      <div class="card card-kpi active-kpi">
+        <div class="kpi-header"><span class="kpi-title">Pending</span><div class="kpi-icon"><i class="ri-time-line"></i></div></div>
+        <span class="kpi-value" id="kpi-pending">0</span>
+      </div>
+      <div class="card card-kpi">
+        <div class="kpi-header"><span class="kpi-title">Approved</span><div class="kpi-icon"><i class="ri-checkbox-circle-line"></i></div></div>
+        <span class="kpi-value" id="kpi-approved">0</span>
+      </div>
+      <div class="card card-kpi">
+        <div class="kpi-header"><span class="kpi-title">Rejected</span><div class="kpi-icon"><i class="ri-close-circle-line"></i></div></div>
+        <span class="kpi-value" id="kpi-rejected">0</span>
+      </div>
+    </div>
+
+    <div class="dashboard-layout">
+
+      <!-- LEFT: New leave request form -->
+      <div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Apply for Leave</span></div>
+          <form id="leave-form" onsubmit="handleLeaveSubmit(event)">
+            <div class="form-group">
+              <label class="form-label">Leave Type *</label>
+              <select id="leave-type" class="form-control" required>
+                <option value="Casual">Casual Leave</option>
+                <option value="Sick">Sick Leave</option>
+                <option value="Earned">Earned Leave</option>
+                <option value="Unpaid">Unpaid Leave</option>
+              </select>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+              <div class="form-group">
+                <label class="form-label">Start Date *</label>
+                <input type="date" id="leave-start" class="form-control" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">End Date *</label>
+                <input type="date" id="leave-end" class="form-control" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Reason *</label>
+              <textarea id="leave-reason" class="form-control" rows="4" placeholder="Briefly describe the reason for leave..." required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="ri-send-plane-line"></i> Submit Request</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- RIGHT: Leave history table -->
+      <div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">My Leave Requests</span></div>
+          <div class="table-responsive">
+            <table class="table-custom">
+              <thead>
+                <tr><th>ID</th><th>Type</th><th>Dates</th><th>Days</th><th>Status</th><th></th></tr>
+              </thead>
+              <tbody id="leave-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+  const App = {
+    showToast(message, type = 'success') {
+      let c = document.getElementById('toastContainer');
+      const t = document.createElement('div');
+      t.className = `toast toast-${type === 'error' ? 'danger' : type}`;
+      t.textContent = message;
+      c.appendChild(t);
+      setTimeout(() => t.remove(), 3500);
+    }
+  };
+
+  function statusBadge(status) {
+    const cls = status === 'Approved' ? 'approved' : status === 'Rejected' ? 'rejected' : 'pending';
+    return `<span class="badge badge-${cls}">${status}</span>`;
+  }
+
+  async function loadLeaves() {
+    try {
+      const response = await fetch("{% url 'employee_leave_data' %}");
+      const data = await response.json();
+      const leaves = data.leaves;
+
+      document.getElementById('kpi-total').textContent = leaves.length;
+      document.getElementById('kpi-pending').textContent = leaves.filter(l => l.status === 'Pending').length;
+      document.getElementById('kpi-approved').textContent = leaves.filter(l => l.status === 'Approved').length;
+      document.getElementById('kpi-rejected').textContent = leaves.filter(l => l.status === 'Rejected').length;
+
+      document.getElementById('leave-table-body').innerHTML = leaves.map(l => `
+        <tr>
+          <td style="font-weight:600;color:var(--color-brand);">${l.id}</td>
+          <td>${l.type}</td>
+          <td style="font-size:12px;">${l.startDate} → ${l.endDate}</td>
+          <td>${l.days}</td>
+          <td>${statusBadge(l.status)}</td>
+          <td>${l.status === 'Pending' ? `<button class="btn btn-danger btn-sm" onclick="cancelLeave('${l.id}')"><i class="ri-close-line"></i></button>` : ''}</td>
+        </tr>
+      `).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--color-text-muted);">No leave requests yet.</td></tr>';
+    } catch (err) { console.error(err); }
+  }
+
+  async function handleLeaveSubmit(event) {
+    event.preventDefault();
+    const start = document.getElementById('leave-start').value;
+    const end = document.getElementById('leave-end').value;
+    if (end < start) { App.showToast('End date cannot be before start date.', 'error'); return; }
+
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    formData.append('leave_type', document.getElementById('leave-type').value);
+    formData.append('start_date', start);
+    formData.append('end_date', end);
+    formData.append('reason', document.getElementById('leave-reason').value.trim());
+
+    try {
+      const res = await fetch("{% url 'employee_submit_leave' %}", { method: 'POST', body: formData });
+      const data = await res.json();
+      App.showToast(data.message, data.success ? 'success' : 'error');
+      if (data.success) { document.getElementById('leave-form').reset(); loadLeaves(); }
+    } catch (err) { App.showToast('Something went wrong. Please try again.', 'error'); }
+  }
+
+  async function cancelLeave(leaveId) {
+    const formData = new FormData();
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    formData.append('leave_id', leaveId);
+    try {
+      const res = await fetch("{% url 'employee_cancel_leave' %}", { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.success) { App.showToast('Leave request cancelled.', 'success'); loadLeaves(); }
+      else { App.showToast(data.message || 'Unable to cancel request.', 'error'); }
+    } catch (err) { App.showToast('Something went wrong. Please try again.', 'error'); }
+  }
+
+  window.addEventListener('DOMContentLoaded', loadLeaves);
+</script>
+</body>
+</html>

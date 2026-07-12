@@ -1,0 +1,21 @@
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('', views.home, name='dept_head_home'),
+    path('index/', views.index, name='dept_head_index'),
+    path('index.html', views.index, name='dept_head_index_html'),
+    path('assets/', views.assets, name='dept_head_assets'),
+    path('assets.html', views.assets, name='dept_head_assets_html'),
+    path('allocations/', views.allocations, name='dept_head_allocations'),
+    path('allocations.html', views.allocations, name='dept_head_allocations_html'),
+    path('handle_allocation/', views.handle_allocation, name='dept_head_handle_allocation'),
+    path('transfers/', views.transfers, name='dept_head_transfers'),
+    path('transfers.html', views.transfers, name='dept_head_transfers_html'),
+    path('handle_transfer/', views.handle_transfer, name='dept_head_handle_transfer'),
+    path('bookings/', views.bookings, name='dept_head_bookings'),
+    path('bookings.html', views.bookings, name='dept_head_bookings_html'),
+    path('create_booking/', views.create_booking, name='dept_head_create_booking'),
+    path('cancel_booking/', views.cancel_booking, name='dept_head_cancel_booking'),
+    path('get_dashboard_data/', views.get_dashboard_data, name='dept_head_dashboard_data'),
+]

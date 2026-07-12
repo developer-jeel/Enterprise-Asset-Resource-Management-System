@@ -1,0 +1,345 @@
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+
+from core.decorators import check_login
+from core.models import (
+    Asset,
+    AssetAllocation,
+    AssetTransfer,
+    Resource,
+    ResourceBooking,
+    ActivityLog,
+)
+import datetime
+import json
+
+
+@login_required
+@check_login(['dept_head'])
+def home(request):
+    return redirect('dept_head_index')
+
+
+@login_required
+@check_login(['dept_head'])
+def index(request):
+    profile = request.user.profile
+    dept = profile.department or ''
+
+    assets = Asset.objects.filter(department=dept)
+    allocations = AssetAllocation.objects.filter(department=dept)
+    transfers = AssetTransfer.objects.filter(to_dept=dept)
+    bookings = ResourceBooking.objects.filter(booked_by=request.user)
+    activities = ActivityLog.objects.filter(user=request.user).order_by('-id')[:5]
+
+    context = {
+        'profile': profile,
+        'total_assets': assets.count(),
+        'allocated_assets': assets.filter(lifecycle='In Use').count(),
+        'pending_allocations': allocations.filter(status='Pending').count(),
+        'pending_transfers': transfers.filter(status='Pending').count(),
+        'active_bookings': bookings.filter(status='Active').count(),
+        'recent_allocations': allocations.order_by('-request_date')[:3],
+        'recent_transfers': transfers.order_by('-request_date')[:3],
+        'active_bookings_list': bookings.filter(status='Active').order_by('date')[:3],
+        'activities': activities,
+    }
+    return render(request, 'dept_head/index.html', context)
+
+
+@login_required
+@check_login(['dept_head'])
+def assets(request):
+    profile = request.user.profile
+    dept = profile.department or ''
+    dept_assets = Asset.objects.filter(department=dept)
+    categories = list(dept_assets.values_list('category', flat=True).distinct())
+    context = {
+        'profile': profile,
+        'assets': dept_assets,
+        'categories': categories,
+    }
+    return render(request, 'dept_head/assets.html', context)
+
+
+
+@login_required
+@check_login(['dept_head'])
+def allocations(request):
+    profile = request.user.profile
+    dept = profile.department or ''
+    dept_allocations = AssetAllocation.objects.filter(department=dept).order_by('-request_date')
+    context = {
+        'profile': profile,
+        'allocations': dept_allocations,
+    }
+    return render(request, 'dept_head/allocations.html', context)
+
+
+@login_required
+@check_login(['dept_head'])
+def handle_allocation(request):
+    """AJAX: Approve or Reject an allocation request."""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+        except Exception:
+            data = request.POST
+
+        allocation_id = data.get('allocation_id')
+        action = data.get('action')  # 'Approved' or 'Rejected'
+        remarks = data.get('remarks', '')
+        dept = request.user.profile.department or ''
+
+        try:
+            # Scope to the dept head's own department so a dept head cannot
+            # approve/reject allocation requests belonging to other departments.
+            alloc = AssetAllocation.objects.get(allocation_id=allocation_id, department=dept)
+            alloc.status = action
+            alloc.remarks = remarks
+            alloc.save()
+
+            ActivityLog.objects.create(
+                user=request.user,
+                text=f"{request.user.username} {action.lower()} allocation request {allocation_id}",
+                time='Just now',
+                type='approval' if action == 'Approved' else 'rejection'
+            )
+            return JsonResponse({'success': True, 'message': f'Request {allocation_id} has been {action.lower()}.'})
+        except AssetAllocation.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Allocation not found.'}, status=404)
+
+    return JsonResponse({'success': False, 'message': 'Invalid method.'}, status=405)
+
+
+@login_required
+@check_login(['dept_head'])
+def transfers(request):
+    profile = request.user.profile
+    dept = profile.department or ''
+    dept_transfers = AssetTransfer.objects.filter(to_dept=dept).order_by('-request_date')
+    context = {
+        'profile': profile,
+        'transfers': dept_transfers,
+    }
+    return render(request, 'dept_head/transfers.html', context)
+
+
+@login_required
+@check_login(['dept_head'])
+def handle_transfer(request):
+    """AJAX: Approve or Reject a transfer request."""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+        except Exception:
+            data = request.POST
+
+        transfer_id = data.get('transfer_id')
+        action = data.get('action')  # 'Approved' or 'Rejected'
+        remarks = data.get('remarks', '')
+        dept = request.user.profile.department or ''
+
+        try:
+            # Scope to the dept head's own department (the destination dept
+            # of the transfer) for the same reason as handle_allocation above.
+            transfer = AssetTransfer.objects.get(transfer_id=transfer_id, to_dept=dept)
+            transfer.status = action
+            transfer.remarks = remarks
+            if action == 'Approved':
+                transfer.approved_by = request.user
+                # Update the asset's assigned employee
+                transfer.asset.assigned_to = transfer.to_employee
+                transfer.asset.department = transfer.to_dept or transfer.asset.department
+                transfer.asset.save()
+            transfer.save()
+
+            ActivityLog.objects.create(
+                user=request.user,
+                text=f"{request.user.username} {action.lower()} transfer request {transfer_id}",
+                time='Just now',
+                type='approval' if action == 'Approved' else 'rejection'
+            )
+            return JsonResponse({'success': True, 'message': f'Transfer {transfer_id} has been {action.lower()}.'})
+        except AssetTransfer.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Transfer not found.'}, status=404)
+
+    return JsonResponse({'success': False, 'message': 'Invalid method.'}, status=405)
+
+
+@login_required
+@check_login(['dept_head'])
+def bookings(request):
+    profile = request.user.profile
+    my_bookings = ResourceBooking.objects.filter(booked_by=request.user).order_by('-date')
+    resources = Resource.objects.all()
+    context = {
+        'profile': profile,
+        'bookings': my_bookings,
+        'resources': resources,
+    }
+    return render(request, 'dept_head/bookings.html', context)
+
+
+@login_required
+@check_login(['dept_head'])
+def create_booking(request):
+    """AJAX: Create a new resource booking."""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+        except Exception:
+            data = request.POST
+
+        resource_id = data.get('resource_id')
+        date_str = data.get('date')
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')
+        purpose = data.get('purpose', '')
+        notes = data.get('notes', '')
+
+        try:
+            resource = Resource.objects.get(resource_id=resource_id)
+            booking_date = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+
+            # Generate booking ID
+            count = ResourceBooking.objects.count() + 1
+            booking_id = f"BK-DH{count:04d}"
+
+            booking = ResourceBooking.objects.create(
+                booking_id=booking_id,
+                resource=resource,
+                booked_by=request.user,
+                date=booking_date,
+                start_time=start_time,
+                end_time=end_time,
+                purpose=purpose,
+                notes=notes,
+                status='Active'
+            )
+
+            ActivityLog.objects.create(
+                user=request.user,
+                text=f"{request.user.username} booked {resource.name} on {date_str}",
+                time='Just now',
+                type='booking'
+            )
+
+            return JsonResponse({
+                'success': True,
+                'booking': {
+                    'id': booking.booking_id,
+                    'resource': resource.name,
+                    'date': str(booking.date),
+                    'start': booking.start_time,
+                    'end': booking.end_time,
+                    'status': booking.status,
+                    'purpose': booking.purpose,
+                }
+            })
+        except Resource.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Resource not found.'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=400)
+
+    return JsonResponse({'success': False, 'message': 'Invalid method.'}, status=405)
+
+
+@login_required
+@check_login(['dept_head'])
+def cancel_booking(request):
+    """AJAX: Cancel a resource booking."""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+        except Exception:
+            data = request.POST
+
+        booking_id = data.get('booking_id')
+
+        try:
+            booking = ResourceBooking.objects.get(booking_id=booking_id, booked_by=request.user)
+            booking.status = 'Cancelled'
+            booking.save()
+            return JsonResponse({'success': True, 'message': f'Booking {booking_id} cancelled.'})
+        except ResourceBooking.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Booking not found.'}, status=404)
+
+    return JsonResponse({'success': False, 'message': 'Invalid method.'}, status=405)
+
+
+@login_required
+@check_login(['dept_head'])
+def get_dashboard_data(request):
+    """AJAX: Return live dashboard data as JSON."""
+    profile = request.user.profile
+    dept = profile.department or ''
+
+    assets = Asset.objects.filter(department=dept)
+    allocations = AssetAllocation.objects.filter(department=dept).order_by('-request_date')
+    transfers = AssetTransfer.objects.filter(to_dept=dept).order_by('-request_date')
+    bookings = ResourceBooking.objects.filter(booked_by=request.user)
+    activities = ActivityLog.objects.filter(user=request.user).order_by('-id')[:10]
+
+    alloc_list = []
+    for a in allocations:
+        alloc_list.append({
+            'id': a.allocation_id,
+            'employee': a.requested_by.username,
+            'asset': a.asset_name or (a.asset.name if a.asset else '—'),
+            'category': a.category or (a.asset.category if a.asset else '—'),
+            'date': str(a.request_date),
+            'status': a.status,
+            'remarks': a.remarks or '',
+            'purpose': a.purpose,
+        })
+
+    transfer_list = []
+    for t in transfers:
+        transfer_list.append({
+            'id': t.transfer_id,
+            'asset': t.asset.name,
+            'assetId': t.asset.tag,
+            'fromEmployee': t.from_employee.username,
+            'toEmployee': t.to_employee.username,
+            'reason': t.reason,
+            'date': str(t.request_date),
+            'status': t.status,
+            'remarks': t.remarks or '',
+        })
+
+    bookings_list = []
+    for b in bookings:
+        bookings_list.append({
+            'id': b.booking_id,
+            'resource': b.resource.name,
+            'type': b.resource.type,
+            'date': str(b.date),
+            'start': b.start_time,
+            'end': b.end_time,
+            'purpose': b.purpose,
+            'status': b.status,
+        })
+
+    activity_list = []
+    for act in activities:
+        activity_list.append({
+            'text': act.text,
+            'time': act.time,
+            'type': act.type,
+        })
+
+    return JsonResponse({
+        'kpis': {
+            'totalAssets': assets.count(),
+            'allocatedAssets': assets.filter(lifecycle='In Use').count(),
+            'pendingAllocations': allocations.filter(status='Pending').count(),
+            'pendingTransfers': transfers.filter(status='Pending').count(),
+            'activeBookings': bookings.filter(status='Active').count(),
+        },
+        'allocations': alloc_list,
+        'transfers': transfer_list,
+        'bookings': bookings_list,
+        'activities': activity_list,
+    })
