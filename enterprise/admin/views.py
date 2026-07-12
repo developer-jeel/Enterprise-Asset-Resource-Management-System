@@ -1,7 +1,7 @@
 from django.shortcuts import render,redirect 
 from django.contrib.auth.hashers import make_password, check_password
 from django.contrib import messages
-from models import *
+from .models import *
 
 
 def login(request):
@@ -17,14 +17,22 @@ def login(request):
             request.session['email'] = login_user.email
 
             #  Redirect based on role
-            if login_user.role == 'Farmer':
+            if login_user.role == 'admin':
                 login_user.is_active = True
                 login_user.save()
-                return redirect('farmer_home')
-            elif login_user.role == 'Buyer':
+                return redirect('admin_index')
+            elif login_user.role == 'manager':
                 login_user.is_active = True
                 login_user.save()
-                return redirect('buyer_home')
+                return redirect('admin_index')
+            elif login_user.role == 'dept_head':
+                login_user.is_active = True
+                login_user.save()
+                return redirect('admin_index')
+            elif login_user.role == 'dept_head':
+                login_user.is_active = True
+                login_user.save()
+                return redirect('admin_index')
             else:
                 return redirect('home')
 
@@ -32,7 +40,7 @@ def login(request):
             messages.error(request, 'Invalid Contact number or password')
             return redirect('login')
             
-    return render(request, "farmer/login.html")
+    return render(request, "admin/login.html")
 
 def check_login(allowed_roles):
     def decorator(view_function):
