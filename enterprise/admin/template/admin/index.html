@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Overview — AssetFlow Department Head Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet" />
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">AF</div>
+      <div class="sidebar-brand-text">
+        <span class="sidebar-app-name">AssetFlow</span>
+        <span class="sidebar-app-sub">Dept Head</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="nav-link active"><i class="ri-dashboard-line"></i> Dashboard</a>
+      <a href="assets.html" class="nav-link"><i class="ri-box-3-line"></i> Department Assets</a>
+      <a href="allocations.html" class="nav-link"><i class="ri-send-plane-line"></i> Allocation Requests</a>
+      <a href="transfers.html" class="nav-link"><i class="ri-shuffle-line"></i> Transfer Requests</a>
+      <a href="bookings.html" class="nav-link"><i class="ri-calendar-event-line"></i> Resource Booking</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-profile">
+        <div class="user-avatar">SC</div>
+        <div class="user-info">
+          <span class="user-name">Sarah Connor</span>
+          <span class="user-role">Department Head</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <header class="top-header">
+      <div class="header-left">
+        <h1 class="header-title">Dashboard Overview</h1>
+      </div>
+      <div class="header-right">
+        <span class="dept-pill">Engineering Department</span>
+        <button class="logout-btn" onclick="handleLogout()"><i class="ri-logout-box-line"></i> Sign Out</button>
+      </div>
+    </header>
+    
+    <main class="page-body animate-slide-right">
+      <!-- KPI Grid -->
+      <div class="kpi-grid">
+        <!-- Total Department Assets -->
+        <div class="card card-kpi">
+          <div class="kpi-header">
+            <span class="kpi-title">Total Dept Assets</span>
+            <div class="kpi-icon"><i class="ri-box-3-line"></i></div>
+          </div>
+          <span class="kpi-value" id="kpi-total-assets">8</span>
+        </div>
+        <!-- Allocated Assets -->
+        <div class="card card-kpi active-kpi">
+          <div class="kpi-header">
+            <span class="kpi-title">Allocated Assets</span>
+            <div class="kpi-icon"><i class="ri-checkbox-circle-line"></i></div>
+          </div>
+          <span class="kpi-value" id="kpi-allocated">8</span>
+        </div>
+        <!-- Pending Allocation Requests -->
+        <div class="card card-kpi active-kpi">
+          <div class="kpi-header">
+            <span class="kpi-title">Pending Allocations</span>
+            <div class="kpi-icon"><i class="ri-send-plane-line"></i></div>
+          </div>
+          <span class="kpi-value" id="kpi-pending-allocations">4</span>
+        </div>
+        <!-- Pending Transfer Requests -->
+        <div class="card card-kpi active-kpi">
+          <div class="kpi-header">
+            <span class="kpi-title">Pending Transfers</span>
+            <div class="kpi-icon"><i class="ri-shuffle-line"></i></div>
+          </div>
+          <span class="kpi-value" id="kpi-pending-transfers">3</span>
+        </div>
+        <!-- Active Resource Bookings -->
+        <div class="card card-kpi">
+          <div class="kpi-header">
+            <span class="kpi-title">Active Bookings</span>
+            <div class="kpi-icon"><i class="ri-calendar-event-line"></i></div>
+          </div>
+          <span class="kpi-value" id="kpi-active-bookings">4</span>
+        </div>
+      </div>
+
+      <!-- Dashboard Layout Section -->
+      <div class="dashboard-layout">
+        <!-- Left Column: Tables -->
+        <div class="column-gap-32">
+          <!-- Recent Allocation Requests -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Recent Allocation Requests</span>
+              <a href="allocations.html" class="btn btn-secondary btn-sm">View All</a>
+            </div>
+            <div class="table-responsive">
+              <table class="table-custom">
+                <thead>
+                  <tr>
+                    <th>Request ID</th>
+                    <th>Employee</th>
+                    <th>Requested Asset</th>
+                    <th>Request Date</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-allocations-body">
+                  <tr>
+                    <td><span class="font-semi">AR-2091</span></td>
+                    <td>John Doe</td>
+                    <td>iPad Air 5th Gen</td>
+                    <td>2026-07-10</td>
+                    <td><span class="badge badge-pending">Pending</span></td>
+                  </tr>
+                  <tr>
+                    <td><span class="font-semi">AR-2092</span></td>
+                    <td>Alice Johnson</td>
+                    <td>Logitech MX Master 3</td>
+                    <td>2026-07-09</td>
+                    <td><span class="badge badge-approved">Approved</span></td>
+                  </tr>
+                  <tr>
+                    <td><span class="font-semi">AR-2093</span></td>
+                    <td>Bob Smith</td>
+                    <td>Standing Desk</td>
+                    <td>2026-07-08</td>
+                    <td><span class="badge badge-pending">Pending</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Recent Transfer Requests -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Recent Transfer Requests</span>
+              <a href="transfers.html" class="btn btn-secondary btn-sm">View All</a>
+            </div>
+            <div class="table-responsive">
+              <table class="table-custom">
+                <thead>
+                  <tr>
+                    <th>Transfer ID</th>
+                    <th>Asset</th>
+                    <th>Handover (From &rarr; To)</th>
+                    <th>Request Date</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-transfers-body">
+                  <tr>
+                    <td><span class="font-semi">TR-8812</span></td>
+                    <td>AST-8291</td>
+                    <td>John Doe &rarr; Alice Johnson</td>
+                    <td>2026-07-11</td>
+                    <td><span class="badge badge-pending">Pending</span></td>
+                  </tr>
+                  <tr>
+                    <td><span class="font-semi">TR-8813</span></td>
+                    <td>AST-1029</td>
+                    <td>Alice Johnson &rarr; Bob Smith</td>
+                    <td>2026-07-10</td>
+                    <td><span class="badge badge-approved">Approved</span></td>
+                  </tr>
+                  <tr>
+                    <td><span class="font-semi">TR-8814</span></td>
+                    <td>AST-3810</td>
+                    <td>Bob Smith &rarr; Charlie Brown</td>
+                    <td>2026-07-09</td>
+                    <td><span class="badge badge-pending">Pending</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Sidebar Widgets -->
+        <div class="column-gap-32">
+          <!-- Upcoming Resource Bookings -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Upcoming Bookings</span>
+              <a href="bookings.html" class="btn btn-secondary btn-sm">Book</a>
+            </div>
+            <div id="upcoming-bookings-list" style="display: flex; flex-direction: column; gap: 8px;">
+              <!-- Handled dynamically by js -->
+            </div>
+          </div>
+
+          <!-- Recent Activity Log -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Activity Timeline</span>
+            </div>
+            <div class="timeline" id="activity-timeline">
+              <!-- Handled dynamically by js -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    function handleLogout() {
+      App.showToast("Sign out clicked (Mock action in demo mode)", "warning");
+    }
+
+    function initDashboard() {
+      const db = App.getDB();
+      
+      // Calculate live counts
+      const totalAssets = db.assets.length;
+      const allocatedAssets = db.assets.filter(a => a.status === 'Allocated').length;
+      const pendingAllocations = db.allocations.filter(a => a.status === 'Pending').length;
+      const pendingTransfers = db.transfers.filter(t => t.status === 'Pending').length;
+      const activeBookings = db.bookings.filter(b => b.status === 'Active').length;
+
+      // Update KPI Card values
+      document.getElementById('kpi-total-assets').textContent = totalAssets;
+      document.getElementById('kpi-allocated').textContent = allocatedAssets;
+      document.getElementById('kpi-pending-allocations').textContent = pendingAllocations;
+      document.getElementById('kpi-pending-transfers').textContent = pendingTransfers;
+      document.getElementById('kpi-active-bookings').textContent = activeBookings;
+
+      // Update Recent Allocations Table
+      const allocationTableBody = document.getElementById('recent-allocations-body');
+      if (allocationTableBody) {
+        allocationTableBody.innerHTML = db.allocations.slice(0, 3).map(req => `
+          <tr>
+            <td><span style="font-weight: 600; color: var(--color-brand);">${req.id}</span></td>
+            <td>${req.employee}</td>
+            <td>${req.asset}</td>
+            <td>${req.date}</td>
+            <td><span class="badge badge-${req.status.toLowerCase()}">${req.status}</span></td>
+          </tr>
+        `).join('');
+      }
+
+      // Update Recent Transfers Table
+      const transferTableBody = document.getElementById('recent-transfers-body');
+      if (transferTableBody) {
+        transferTableBody.innerHTML = db.transfers.slice(0, 3).map(req => `
+          <tr>
+            <td><span style="font-weight: 600; color: var(--color-brand);">${req.id}</span></td>
+            <td>${req.asset.split(' ')[0]}</td>
+            <td>${req.fromEmployee} &rarr; ${req.toEmployee}</td>
+            <td>${req.date}</td>
+            <td><span class="badge badge-${req.status.toLowerCase()}">${req.status}</span></td>
+          </tr>
+        `).join('');
+      }
+
+      // Update Upcoming Resource Bookings List
+      const bookingsList = document.getElementById('upcoming-bookings-list');
+      if (bookingsList) {
+        const activeBookingsList = db.bookings.filter(b => b.status === 'Active').slice(0, 3);
+        if (activeBookingsList.length === 0) {
+          bookingsList.innerHTML = '<div style="color: var(--color-text-secondary); font-size:13px; text-align:center; padding: 20px;">No active bookings found.</div>';
+        } else {
+          bookingsList.innerHTML = activeBookingsList.map(b => `
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--color-border);">
+              <div style="display: flex; gap: 12px; align-items: center; min-width: 0;">
+                <div style="width: 32px; height: 32px; border-radius: var(--radius-sm); background-color: var(--color-brand-light); color: var(--color-brand); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0;">
+                  <i class="${b.resource.includes('Room') || b.resource.includes('Hall') ? 'ri-community-line' : b.resource.includes('Projector') ? 'ri-projector-2-line' : 'ri-car-line'}"></i>
+                </div>
+                <div style="display:flex; flex-direction:column; min-width: 0;">
+                  <span style="font-size:13px; font-weight:600; color:var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${b.resource}</span>
+                  <span style="font-size:11px; color:var(--color-text-muted);">${b.date} &bull; ${b.start} - ${b.end}</span>
+                </div>
+              </div>
+              <span class="badge badge-approved" style="font-size: 9px; flex-shrink: 0; padding: 2px 6px;">Active</span>
+            </div>
+          `).join('');
+        }
+      }
+
+      // Update Activity Timeline
+      const timelineContainer = document.getElementById('activity-timeline');
+      if (timelineContainer) {
+        timelineContainer.innerHTML = db.timeline.slice(0, 4).map((item, index) => `
+          <div class="timeline-item ${index < 2 ? 'active-timeline' : ''}">
+            <div class="timeline-icon-wrap">
+              <i class="${item.type === 'approval' ? 'ri-checkbox-circle-line' : item.type === 'rejection' ? 'ri-close-circle-line' : item.type === 'booking' ? 'ri-calendar-event-line' : 'ri-file-info-line'}"></i>
+            </div>
+            <div class="timeline-content">
+              <div class="timeline-header">
+                <span class="timeline-title">${item.text}</span>
+                <span class="timeline-time">${item.time}</span>
+              </div>
+              <p class="timeline-desc">Status log updated</p>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', initDashboard);
+  </script>
+</body>
+</html>
