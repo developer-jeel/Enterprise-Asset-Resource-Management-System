@@ -1,0 +1,366 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resource Booking — AssetFlow Department Head Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">AF</div>
+      <div class="sidebar-brand-text">
+        <span class="sidebar-app-name">AssetFlow</span>
+        <span class="sidebar-app-sub">Dept Head</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="nav-link"><i class="ri-dashboard-line"></i> Dashboard</a>
+      <a href="assets.html" class="nav-link"><i class="ri-box-3-line"></i> Department Assets</a>
+      <a href="allocations.html" class="nav-link"><i class="ri-send-plane-line"></i> Allocation Requests</a>
+      <a href="transfers.html" class="nav-link"><i class="ri-shuffle-line"></i> Transfer Requests</a>
+      <a href="bookings.html" class="nav-link active"><i class="ri-calendar-event-line"></i> Resource Booking</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-profile">
+        <div class="user-avatar">SC</div>
+        <div class="user-info">
+          <span class="user-name">Sarah Connor</span>
+          <span class="user-role">Department Head</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <header class="top-header">
+      <div class="header-left">
+        <h1 class="header-title">Resource Booking</h1>
+      </div>
+      <div class="header-right">
+        <span class="dept-pill">Engineering Department</span>
+        <button class="logout-btn" onclick="handleLogout()"><i class="ri-logout-box-line"></i> Sign Out</button>
+      </div>
+    </header>
+    
+    <main class="page-body animate-slide-right">
+      <!-- Top Actions and Title -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+        <span style="font-size:14px; color:var(--color-text-secondary);">Book shared organization tools, conference halls, rooms, and vehicles on behalf of your department.</span>
+        <button class="btn btn-primary" onclick="App.openModal('booking-modal')">
+          <i class="ri-calendar-todo-line"></i> New Booking
+        </button>
+      </div>
+
+      <!-- Resource Selection Cards -->
+      <div class="resource-grid">
+        <div class="resource-card">
+          <div class="resource-header">
+            <div class="resource-icon"><i class="ri-community-line"></i></div>
+            <span class="resource-name">Meeting Room 204</span>
+          </div>
+          <p class="resource-desc">Medium-sized workspace equipped with smart whiteboards, a 4K TV, and seating for 8-10 people.</p>
+          <div class="resource-meta">
+            <span>Capacity: 10 Seats</span>
+            <span class="badge badge-brand" style="font-size: 8px;">Available</span>
+          </div>
+        </div>
+
+        <div class="resource-card">
+          <div class="resource-header">
+            <div class="resource-icon"><i class="ri-community-line"></i></div>
+            <span class="resource-name">Conference Hall B</span>
+          </div>
+          <p class="resource-desc">Large presentation venue containing an integrated surround audio system, overhead projector, and seating for 45.</p>
+          <div class="resource-meta">
+            <span>Capacity: 45 Seats</span>
+            <span class="badge badge-brand" style="font-size: 8px;">Available</span>
+          </div>
+        </div>
+
+        <div class="resource-card">
+          <div class="resource-header">
+            <div class="resource-icon"><i class="ri-projector-2-line"></i></div>
+            <span class="resource-name">Projector Max</span>
+          </div>
+          <p class="resource-desc">Ultra-short throw portable 4K laser projector. Suitable for off-site visual demos and layouts reviews.</p>
+          <div class="resource-meta">
+            <span>Device Type: AV Equipment</span>
+            <span class="badge badge-brand" style="font-size: 8px;">Shared</span>
+          </div>
+        </div>
+
+        <div class="resource-card">
+          <div class="resource-header">
+            <div class="resource-icon"><i class="ri-car-line"></i></div>
+            <span class="resource-name">Corporate Sedan</span>
+          </div>
+          <p class="resource-desc">Electric executive corporate car (Tesla Model 3) allocated for developer client visits and on-site handovers.</p>
+          <div class="resource-meta">
+            <span>Category: Fleet Vehicles</span>
+            <span class="badge badge-brand" style="font-size: 8px;">Shared</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Booking History List -->
+      <div class="card animate-slide-left">
+        <div class="card-header">
+          <span class="card-title">Departmental Booking History</span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table-custom">
+            <thead>
+              <tr>
+                <th>Booking ID</th>
+                <th>Resource Name</th>
+                <th>Booking Date</th>
+                <th>Time Window</th>
+                <th>Purpose</th>
+                <th>Reserved By</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="bookings-table-body">
+              <!-- Rendered dynamically by state -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- New Booking Modal Popup -->
+  <div class="modal-overlay" id="booking-modal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <span class="modal-title">Book Shared Resource</span>
+        <button class="modal-close-btn" onclick="App.closeModal('booking-modal')"><i class="ri-close-line"></i></button>
+      </div>
+      
+      <form id="booking-form" onsubmit="handleNewBooking(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="booking-resource" class="form-label">Select Shared Resource <span style="color:var(--color-danger)">*</span></label>
+            <select id="booking-resource" class="form-control" required>
+              <option value="" disabled selected>-- Select a Resource --</option>
+              <option value="Meeting Room 204">Meeting Room 204</option>
+              <option value="Conference Hall B">Conference Hall B</option>
+              <option value="Projector Max">Projector Max (AV Equipment)</option>
+              <option value="Corporate Sedan">Corporate Sedan (Tesla Model 3)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="booking-date" class="form-label">Booking Date <span style="color:var(--color-danger)">*</span></label>
+            <input type="date" id="booking-date" class="form-control" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="booking-start" class="form-label">Start Time <span style="color:var(--color-danger)">*</span></label>
+              <input type="time" id="booking-start" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label for="booking-end" class="form-label">End Time <span style="color:var(--color-danger)">*</span></label>
+              <input type="time" id="booking-end" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="booking-purpose" class="form-label">Purpose of Booking <span style="color:var(--color-danger)">*</span></label>
+            <input type="text" id="booking-purpose" class="form-control" placeholder="e.g. Design review, client meetings..." required>
+          </div>
+
+          <div class="form-group">
+            <label for="booking-dept" class="form-label">Booking Department</label>
+            <input type="text" id="booking-dept" class="form-control" value="Engineering" disabled readonly>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0;">
+            <label for="booking-notes" class="form-label">Special Notes / Requirements</label>
+            <textarea id="booking-notes" class="form-control" placeholder="e.g. Setup adapter, room layout request..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="App.closeModal('booking-modal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Confirm Booking</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="{% static 'js/app.js' %}"></script>
+  <script>
+    function handleLogout() {
+      App.showToast("Sign out clicked (Mock action in demo mode)", "warning");
+    }
+
+    let allBookings = [];
+
+    // Form time formatter utility: 14:30 -> 02:30 PM
+    function formatTime12h(timeStr) {
+      if (!timeStr) return '';
+      const [hoursStr, minutesStr] = timeStr.split(':');
+      let hours = parseInt(hoursStr, 10);
+      const minutes = minutesStr;
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12; // 0 should be 12
+      return `${hours}:${minutes} ${ampm}`;
+    }
+
+    function renderBookingsTable(bookings) {
+      const tbody = document.getElementById('bookings-table-body');
+      if (!tbody) return;
+
+      if (bookings.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--color-text-secondary); padding: 24px;">No booking records found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = bookings.map(b => {
+        let actionBtn = '';
+        let statusBadge = '';
+
+        if (b.status === 'Active') {
+          statusBadge = `<span class="badge badge-approved">Active</span>`;
+          actionBtn = `
+            <button class="btn btn-danger btn-sm" onclick="cancelBooking('${b.id}')">
+              <i class="ri-delete-bin-line"></i> Cancel
+            </button>
+          `;
+        } else if (b.status === 'Cancelled') {
+          statusBadge = `<span class="badge badge-rejected">Cancelled</span>`;
+          actionBtn = `<span style="font-size:12px; color:var(--color-text-muted); font-style:italic;">N/A</span>`;
+        } else {
+          statusBadge = `<span class="badge badge-pending" style="background-color:#E2E8F0; color:var(--color-text-secondary);">${b.status}</span>`;
+          actionBtn = `<span style="font-size:12px; color:var(--color-text-muted); font-style:italic;">Completed</span>`;
+        }
+
+        return `
+          <tr>
+            <td><span style="font-weight:600; color:var(--color-brand);">${b.id}</span></td>
+            <td style="font-weight: 500;">${b.resource}</td>
+            <td>${b.date}</td>
+            <td>${b.start} - ${b.end}</td>
+            <td>${b.purpose}</td>
+            <td>Sarah Connor</td>
+            <td>${statusBadge}</td>
+            <td>${actionBtn}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function handleNewBooking(e) {
+      e.preventDefault();
+      
+      const resource = document.getElementById('booking-resource').value;
+      const date = document.getElementById('booking-date').value;
+      const startInput = document.getElementById('booking-start').value;
+      const endInput = document.getElementById('booking-end').value;
+      const purpose = document.getElementById('booking-purpose').value.trim();
+      const notes = document.getElementById('booking-notes').value.trim();
+
+      if (!resource || !date || !startInput || !endInput || !purpose) {
+        App.showToast("Please fill in all required fields.", "danger");
+        return;
+      }
+
+      const db = App.getDB();
+      const nextIdNum = db.bookings.reduce((max, b) => {
+        const idNum = parseInt(b.id.split('-')[1], 10);
+        return idNum > max ? idNum : max;
+      }, 5000) + 1;
+
+      const newBooking = {
+        id: `BK-${nextIdNum}`,
+        resource: resource,
+        date: date,
+        start: formatTime12h(startInput),
+        end: formatTime12h(endInput),
+        purpose: purpose,
+        department: 'Engineering',
+        status: 'Active',
+        notes: notes || 'None'
+      };
+
+      // Add to array
+      db.bookings.unshift(newBooking);
+
+      // Create timeline entry
+      const timelineItem = {
+        id: `TL-${Date.now()}`,
+        text: `Sarah Connor booked ${resource} for ${purpose}`,
+        time: 'Just now',
+        type: 'booking'
+      };
+      db.timeline.unshift(timelineItem);
+
+      App.saveDB(db);
+
+      // Sync local memory and view
+      allBookings = db.bookings;
+      renderBookingsTable(allBookings);
+
+      // Reset form and close modal
+      document.getElementById('booking-form').reset();
+      App.closeModal('booking-modal');
+
+      App.showToast(`Resource ${resource} has been booked successfully!`, 'success');
+    }
+
+    function cancelBooking(bookingId) {
+      if (!confirm(`Are you sure you want to cancel the booking for ${bookingId}?`)) return;
+
+      const db = App.getDB();
+      const bIndex = db.bookings.findIndex(b => b.id === bookingId);
+      
+      if (bIndex !== -1) {
+        db.bookings[bIndex].status = 'Cancelled';
+        
+        // Add timeline entry
+        const timelineItem = {
+          id: `TL-${Date.now()}`,
+          text: `Sarah Connor cancelled booking #${bookingId} (${db.bookings[bIndex].resource})`,
+          time: 'Just now',
+          type: 'rejection'
+        };
+        db.timeline.unshift(timelineItem);
+        
+        App.saveDB(db);
+
+        // Sync local memory and view
+        allBookings = db.bookings;
+        renderBookingsTable(allBookings);
+
+        App.showToast(`Booking ${bookingId} was successfully cancelled.`, 'warning');
+      }
+    }
+
+    function initBookings() {
+      const db = App.getDB();
+      allBookings = db.bookings;
+      renderBookingsTable(allBookings);
+
+      // Set min date on datepicker to today
+      const todayStr = new Date().toISOString().split('T')[0];
+      const dateInput = document.getElementById('booking-date');
+      if (dateInput) {
+        dateInput.min = todayStr;
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', initBookings);
+  </script>
+</body>
+</html>

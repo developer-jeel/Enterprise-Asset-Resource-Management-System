@@ -1,0 +1,271 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Allocation Requests — AssetFlow Department Head Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">AF</div>
+      <div class="sidebar-brand-text">
+        <span class="sidebar-app-name">AssetFlow</span>
+        <span class="sidebar-app-sub">Dept Head</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="nav-link"><i class="ri-dashboard-line"></i> Dashboard</a>
+      <a href="assets.html" class="nav-link"><i class="ri-box-3-line"></i> Department Assets</a>
+      <a href="allocations.html" class="nav-link active"><i class="ri-send-plane-line"></i> Allocation Requests</a>
+      <a href="transfers.html" class="nav-link"><i class="ri-shuffle-line"></i> Transfer Requests</a>
+      <a href="bookings.html" class="nav-link"><i class="ri-calendar-event-line"></i> Resource Booking</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-profile">
+        <div class="user-avatar">SC</div>
+        <div class="user-info">
+          <span class="user-name">Sarah Connor</span>
+          <span class="user-role">Department Head</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <header class="top-header">
+      <div class="header-left">
+        <h1 class="header-title">Allocation Requests</h1>
+      </div>
+      <div class="header-right">
+        <span class="dept-pill">Engineering Department</span>
+        <button class="logout-btn" onclick="handleLogout()"><i class="ri-logout-box-line"></i> Sign Out</button>
+      </div>
+    </header>
+    
+    <main class="page-body animate-slide-right">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Employee Asset Requests</span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table-custom">
+            <thead>
+              <tr>
+                <th>Request ID</th>
+                <th>Employee</th>
+                <th>Requested Asset</th>
+                <th>Category</th>
+                <th>Request Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="allocations-table-body">
+              <!-- Rendered dynamically by state -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Confirmation Modal Popup -->
+  <div class="modal-overlay" id="confirm-modal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <span class="modal-title" id="confirm-modal-title">Confirm Allocation Action</span>
+        <button class="modal-close-btn" onclick="App.closeModal('confirm-modal')"><i class="ri-close-line"></i></button>
+      </div>
+      <div class="modal-body">
+        <div style="background-color: var(--bg-primary); padding:16px; border-radius:var(--radius-md); border:1px solid var(--color-border); margin-bottom: 20px;">
+          <div style="display:grid; grid-template-columns: 120px 1fr; row-gap: 8px; font-size:13px;">
+            <span style="font-weight:600; color:var(--color-text-secondary);">Request ID:</span>
+            <span id="summary-request-id" style="font-weight:600; color:var(--color-brand);">AR-0000</span>
+            
+            <span style="font-weight:600; color:var(--color-text-secondary);">Employee:</span>
+            <span id="summary-employee">Jane Doe</span>
+            
+            <span style="font-weight:600; color:var(--color-text-secondary);">Requested Asset:</span>
+            <span id="summary-asset">iPhone 13</span>
+            
+            <span style="font-weight:600; color:var(--color-text-secondary);">Action:</span>
+            <span id="summary-action" style="font-weight:700;">APPROVE</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="manager-remarks" class="form-label">Review Remarks / Notes (Optional)</label>
+          <textarea id="manager-remarks" class="form-control" placeholder="Enter reason or guidelines..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="App.closeModal('confirm-modal')">Cancel</button>
+        <button class="btn" id="confirm-submit-btn" onclick="submitDecision()">Confirm Action</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="{% static 'js/app.js' %}"></script>
+  <script>
+    function handleLogout() {
+      App.showToast("Sign out clicked (Mock action in demo mode)", "warning");
+    }
+
+    let allAllocations = [];
+    let currentTargetId = null;
+    let currentActionType = null; // 'Approved' or 'Rejected'
+
+    function renderAllocationsTable(allocations) {
+      const tbody = document.getElementById('allocations-table-body');
+      if (!tbody) return;
+
+      if (allocations.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--color-text-secondary); padding: 24px;">No requests found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = allocations.map(req => {
+        let actionButtons = '';
+        if (req.status === 'Pending') {
+          actionButtons = `
+            <div style="display:flex; gap: 8px;">
+              <button class="btn btn-success btn-sm" onclick="promptAction('${req.id}', 'Approved')">
+                <i class="ri-check-line"></i> Approve
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="promptAction('${req.id}', 'Rejected')">
+                <i class="ri-close-line"></i> Reject
+              </button>
+            </div>
+          `;
+        } else {
+          actionButtons = `<span style="font-size:12px; color:var(--color-text-muted); font-style:italic;">No actions pending</span>`;
+        }
+
+        return `
+          <tr>
+            <td><span style="font-weight: 600; color: var(--color-brand);">${req.id}</span></td>
+            <td style="font-weight: 500;">${req.employee}</td>
+            <td>${req.asset}</td>
+            <td>${req.category}</td>
+            <td>${req.date}</td>
+            <td><span class="badge badge-${req.status.toLowerCase()}">${req.status}</span></td>
+            <td>${actionButtons}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function promptAction(requestId, action) {
+      const req = allAllocations.find(r => r.id === requestId);
+      if (!req) return;
+
+      currentTargetId = requestId;
+      currentActionType = action;
+
+      // Update Modal Text Content
+      document.getElementById('confirm-modal-title').textContent = `${action} Allocation Request`;
+      document.getElementById('summary-request-id').textContent = req.id;
+      document.getElementById('summary-employee').textContent = req.employee;
+      document.getElementById('summary-asset').textContent = req.asset;
+      
+      const actionSpan = document.getElementById('summary-action');
+      actionSpan.textContent = action.toUpperCase();
+      if (action === 'Approved') {
+        actionSpan.style.color = 'var(--color-success)';
+        
+        // Style submit button green
+        const btn = document.getElementById('confirm-submit-btn');
+        btn.className = 'btn btn-success';
+        btn.textContent = 'Approve Request';
+      } else {
+        actionSpan.style.color = 'var(--color-danger)';
+        
+        // Style submit button red
+        const btn = document.getElementById('confirm-submit-btn');
+        btn.className = 'btn btn-danger';
+        btn.textContent = 'Reject Request';
+      }
+
+      // Reset Remarks Textarea
+      document.getElementById('manager-remarks').value = '';
+
+      App.openModal('confirm-modal');
+    }
+
+    function submitDecision() {
+      if (!currentTargetId || !currentActionType) return;
+
+      const db = App.getDB();
+      const reqIndex = db.allocations.findIndex(r => r.id === currentTargetId);
+      
+      if (reqIndex !== -1) {
+        // Update request details
+        const req = db.allocations[reqIndex];
+        req.status = currentActionType;
+        req.remarks = document.getElementById('manager-remarks').value.trim();
+        
+        // Create timeline entry
+        const actionVerb = currentActionType === 'Approved' ? 'approved' : 'rejected';
+        const typeClass = currentActionType === 'Approved' ? 'approval' : 'rejection';
+        const timelineItem = {
+          id: `TL-${Date.now()}`,
+          text: `Sarah Connor ${actionVerb} Allocation Request #${req.id} for ${req.employee}`,
+          time: 'Just now',
+          type: typeClass
+        };
+        
+        db.timeline.unshift(timelineItem);
+        
+        // If approved, we can also check if we should add it to the Assets allocated array (optional since it's mock data, but let's keep it clean!)
+        if (currentActionType === 'Approved') {
+          // Add to asset allocation list
+          const assetId = `AST-${Math.floor(1000 + Math.random() * 9000)}`;
+          db.assets.push({
+            id: assetId,
+            name: req.asset,
+            category: req.category,
+            employee: req.employee,
+            status: 'Allocated',
+            location: 'HQ - Room 402',
+            date: new Date().toISOString().split('T')[0],
+            returnDate: new Date(Date.now() + 365*24*60*60*1000).toISOString().split('T')[0], // + 1 year
+            sn: 'SN-' + Math.random().toString(36).substr(2, 9).toUpperCase(),
+            value: '$499.00',
+            condition: 'Excellent',
+            lastAudit: new Date().toISOString().split('T')[0],
+            notes: 'Automatically generated asset from approved request.'
+          });
+        }
+        
+        App.saveDB(db);
+        
+        // Update local memory and view
+        allAllocations = db.allocations;
+        renderAllocationsTable(allAllocations);
+        
+        // Show success notification
+        const toastType = currentActionType === 'Approved' ? 'success' : 'danger';
+        App.showToast(`Request #${req.id} has been ${currentActionType.toLowerCase()} successfully.`, toastType);
+      }
+
+      App.closeModal('confirm-modal');
+    }
+
+    function initAllocations() {
+      const db = App.getDB();
+      allAllocations = db.allocations;
+      renderAllocationsTable(allAllocations);
+    }
+
+    window.addEventListener('DOMContentLoaded', initAllocations);
+  </script>
+</body>
+</html>
