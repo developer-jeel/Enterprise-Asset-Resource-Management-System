@@ -60,14 +60,7 @@ def check_login(allowed_roles):
                     if login_user.role not in allowed_roles:
                         messages.error(request, "Access Denied")
                         return redirect('login')
-
-
-                    #  Buyer verification
-                    # if login_user.role == 'Buyer':
-                    #     if not hasattr(login_user, 'buyer') or not login_user.buyer.is_verified:
-                    #         messages.error(request, "Not verified")
-                    #         return redirect('login')
-
+                    
                     return view_function(request, *args, **kwargs)
 
                 except user.DoesNotExist:
