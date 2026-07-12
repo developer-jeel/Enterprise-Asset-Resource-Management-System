@@ -24,4 +24,5 @@ urlpatterns = [
     path('allocations/', views.allocations, name='admin_allocations'),
     path('bookings/', views.bookings, name='admin_bookings'),
     path('transfers/', views.transfers, name='admin_transfers'),
+    
 ]
