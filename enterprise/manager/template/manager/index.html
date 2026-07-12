@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — AssetFlow Asset Manager</title>
+  <meta name="description" content="Asset Manager operational dashboard showing KPIs, pending actions, and asset status overview for AssetFlow ERP.">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/asset-manager.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-logo">AF</div>
+    <div class="sidebar-brand-text">
+      <span class="sidebar-app-name">AssetFlow</span>
+      <span class="sidebar-app-sub">Asset Manager</span>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="index.html" class="nav-link active"><i class="ri-dashboard-line"></i> Dashboard</a>
+    <a href="assets.html" class="nav-link"><i class="ri-box-3-line"></i> Asset Directory</a>
+    <a href="transfers.html" class="nav-link"><i class="ri-shuffle-line"></i> Allocation & Transfer</a>
+    <a href="maintenance.html" class="nav-link"><i class="ri-tools-line"></i> Maintenance</a>
+    <a href="discrepancies.html" class="nav-link"><i class="ri-error-warning-line"></i> Discrepancies</a>
+    <a href="returns.html" class="nav-link"><i class="ri-arrow-go-back-line"></i> Returns</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-profile">
+      <div class="user-avatar">AM</div>
+      <div class="user-info">
+        <span class="user-name">Marcus Reynolds</span>
+        <span class="user-role">Asset Manager</span>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<div class="main-content">
+  <header class="top-header">
+    <div class="header-left">
+      <h1 class="header-title">Dashboard Overview</h1>
+    </div>
+    <div class="header-right">
+      <span class="dept-pill">Asset Manager Portal</span>
+      <button class="logout-btn" onclick="App.showToast('Sign out clicked — demo mode','warning')">
+        <i class="ri-logout-box-line"></i> Sign Out
+      </button>
+    </div>
+  </header>
+
+  <main class="page-body animate-slide-right">
+
+    <!-- KPI Grid -->
+    <div class="kpi-grid">
+      <div class="card card-kpi active-kpi">
+        <div class="kpi-header">
+          <span class="kpi-title">Total Assets</span>
+          <div class="kpi-icon"><i class="ri-box-3-line"></i></div>
+        </div>
+        <span class="kpi-value" id="kpi-total">0</span>
+      </div>
+      <div class="card card-kpi active-kpi">
+        <div class="kpi-header">
+          <span class="kpi-title">In Use</span>
+          <div class="kpi-icon"><i class="ri-checkbox-circle-line"></i></div>
+        </div>
+        <span class="kpi-value" id="kpi-inuse">0</span>
+      </div>
+      <div class="card card-kpi">
+        <div class="kpi-header">
+          <span class="kpi-title">Pending Actions</span>
+          <div class="kpi-icon"><i class="ri-time-line"></i></div>
+        </div>
+        <span class="kpi-value" id="kpi-pending">0</span>
+      </div>
+      <div class="card card-kpi">
+        <div class="kpi-header">
+          <span class="kpi-title">Under Repair</span>
+          <div class="kpi-icon"><i class="ri-tools-line"></i></div>
+        </div>
+        <span class="kpi-value" id="kpi-repair">0</span>
+      </div>
+      <div class="card card-kpi">
+        <div class="kpi-header">
+          <span class="kpi-title">Open Discrepancies</span>
+          <div class="kpi-icon"><i class="ri-error-warning-line"></i></div>
+        </div>
+        <span class="kpi-value" id="kpi-disc">0</span>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions-grid">
+      <a href="assets.html" class="quick-action-card">
+        <div class="quick-action-icon orange"><i class="ri-add-box-line"></i></div>
+        <div class="quick-action-info">
+          <div class="quick-action-title">Register Asset</div>
+          <div class="quick-action-sub">Add new asset to directory</div>
+        </div>
+        <i class="ri-arrow-right-s-line" style="color:var(--color-text-muted);"></i>
+      </a>
+      <a href="transfers.html" class="quick-action-card">
+        <div class="quick-action-icon yellow"><i class="ri-send-plane-line"></i></div>
+        <div class="quick-action-info">
+          <div class="quick-action-title">Pending Allocations</div>
+          <div class="quick-action-count" id="qa-alloc">0</div>
+        </div>
+        <i class="ri-arrow-right-s-line" style="color:var(--color-text-muted);"></i>
+      </a>
+      <a href="maintenance.html" class="quick-action-card">
+        <div class="quick-action-icon red"><i class="ri-tools-line"></i></div>
+        <div class="quick-action-info">
+          <div class="quick-action-title">Repair Approvals</div>
+          <div class="quick-action-count" id="qa-maint">0</div>
+        </div>
+        <i class="ri-arrow-right-s-line" style="color:var(--color-text-muted);"></i>
+      </a>
+      <a href="returns.html" class="quick-action-card">
+        <div class="quick-action-icon green"><i class="ri-arrow-go-back-line"></i></div>
+        <div class="quick-action-info">
+          <div class="quick-action-title">Pending Returns</div>
+          <div class="quick-action-count" id="qa-returns">0</div>
+        </div>
+        <i class="ri-arrow-right-s-line" style="color:var(--color-text-muted);"></i>
+      </a>
+    </div>
+
+    <!-- Dashboard Body -->
+    <div class="dashboard-layout">
+      <!-- Left Column -->
+      <div class="column-gap-32">
+
+        <!-- Asset Lifecycle Status -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Asset Lifecycle Distribution</span>
+            <span class="badge badge-brand">Live Snapshot</span>
+          </div>
+          <div id="lifecycle-bars" style="margin-top:8px;"></div>
+        </div>
+
+        <!-- Recent Allocation Requests -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Recent Allocation Requests</span>
+            <a href="transfers.html" class="btn btn-secondary btn-sm">View All</a>
+          </div>
+          <div class="table-responsive">
+            <table class="table-custom">
+              <thead>
+                <tr>
+                  <th>Request ID</th>
+                  <th>Asset</th>
+                  <th>Requested By</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="recent-alloc-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column -->
+      <div class="column-gap-32">
+
+        <!-- Maintenance Snapshot -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Maintenance Queue</span>
+            <a href="maintenance.html" class="btn btn-secondary btn-sm">Manage</a>
+          </div>
+          <div id="maintenance-snapshot" style="display:flex;flex-direction:column;gap:10px;"></div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Recent Activity</span>
+          </div>
+          <div class="timeline" id="activity-log"></div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="../js/app.js"></script>
+<script src="../js/asset-manager.js"></script>
+<script>
+  function initDashboard() {
+    const db = AssetManagerApp.getDB();
+
+    // KPIs
+    document.getElementById('kpi-total').textContent = db.assets.length;
+    document.getElementById('kpi-inuse').textContent = db.assets.filter(a => a.lifecycle === 'In Use').length;
+    document.getElementById('kpi-repair').textContent = db.assets.filter(a => a.lifecycle === 'Repair').length;
+    document.getElementById('kpi-pending').textContent =
+      db.allocations.filter(a => a.status === 'Pending').length +
+      db.transfers.filter(t => t.status === 'Pending').length +
+      db.maintenance.filter(m => m.status === 'Pending').length +
+      db.returns.filter(r => r.status === 'Pending').length;
+    document.getElementById('kpi-disc').textContent = db.discrepancies.filter(d => d.status === 'Pending').length;
+
+    // Quick actions
+    document.getElementById('qa-alloc').textContent = db.allocations.filter(a => a.status === 'Pending').length + db.transfers.filter(t => t.status === 'Pending').length;
+    document.getElementById('qa-maint').textContent = db.maintenance.filter(m => m.status === 'Pending').length;
+    document.getElementById('qa-returns').textContent = db.returns.filter(r => r.status === 'Pending').length;
+
+    // Lifecycle distribution bars
+    const total = db.assets.length;
+    const statuses = [
+      { label: 'In Use', value: db.assets.filter(a => a.lifecycle === 'In Use').length, cls: 'fill-success' },
+      { label: 'In Storage', value: db.assets.filter(a => a.lifecycle === 'Storage').length, cls: 'fill-blue' },
+      { label: 'Under Repair', value: db.assets.filter(a => a.lifecycle === 'Repair').length, cls: 'fill-warning' },
+      { label: 'Retired', value: db.assets.filter(a => a.lifecycle === 'Retired').length, cls: 'fill-danger' },
+    ];
+    document.getElementById('lifecycle-bars').innerHTML = statuses.map(s => `
+      <div class="asset-status-bar">
+        <span class="asset-status-label">${s.label}</span>
+        <div class="asset-status-track"><div class="asset-status-fill ${s.cls}" style="width:${total ? Math.round(s.value/total*100) : 0}%"></div></div>
+        <span class="asset-status-value">${s.value}</span>
+      </div>
+    `).join('');
+
+    // Recent allocations
+    document.getElementById('recent-alloc-body').innerHTML = db.allocations.slice(0,4).map(a => `
+      <tr>
+        <td><span style="font-weight:600;color:var(--color-brand);">${a.id}</span></td>
+        <td style="font-weight:500;">${a.assetName}</td>
+        <td>${a.requestedBy}</td>
+        <td>${a.requestDate}</td>
+        <td><span class="badge badge-${a.status === 'Approved' ? 'approved' : a.status === 'Rejected' ? 'rejected' : 'pending'}">${a.status}</span></td>
+      </tr>
+    `).join('');
+
+    // Maintenance snapshot
+    document.getElementById('maintenance-snapshot').innerHTML = db.maintenance.slice(0,3).map(m => `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--color-border);">
+        <div style="width:36px;height:36px;border-radius:var(--radius-sm);background:var(--bg-primary);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--color-${m.priority==='High'||m.priority==='Critical'?'danger':'warning'});">
+          <i class="ri-tools-line"></i>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:var(--color-text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.assetName}</div>
+          <div style="font-size:11px;color:var(--color-text-muted);">By ${m.reportedBy} · ${m.reportDate}</div>
+        </div>
+        <span class="badge badge-${m.priority === 'Critical' ? 'critical' : m.priority === 'High' ? 'high' : m.priority === 'Medium' ? 'medium' : 'low'}">${m.priority}</span>
+      </div>
+    `).join('');
+
+    // Activity log
+    const icons = { repair: 'ri-tools-line', transfer: 'ri-shuffle-line', register: 'ri-add-box-line', return: 'ri-arrow-go-back-line', audit: 'ri-error-warning-line' };
+    document.getElementById('activity-log').innerHTML = db.activities.map((act, i) => `
+      <div class="timeline-item ${i < 2 ? 'active-timeline' : ''}">
+        <div class="timeline-icon-wrap"><i class="${icons[act.type] || 'ri-info-line'}"></i></div>
+        <div class="timeline-content">
+          <div class="timeline-header">
+            <span class="timeline-title">${act.text}</span>
+            <span class="timeline-time">${act.time}</span>
+          </div>
+          <p class="timeline-desc">Asset Manager action recorded</p>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.addEventListener('DOMContentLoaded', initDashboard);
+</script>
+</body>
+</html>
