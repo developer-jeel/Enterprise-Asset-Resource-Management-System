@@ -1,0 +1,143 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Transfers — AssetFlow Employee Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo" style="background:var(--color-info);">AF</div>
+      <div class="sidebar-brand-text">
+        <span class="sidebar-app-name">AssetFlow</span>
+        <span class="sidebar-app-sub">Employee</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="{% url 'emp_index' %}" class="nav-link"><i class="ri-dashboard-line"></i> Dashboard</a>
+      <a href="{% url 'emp_assets' %}" class="nav-link"><i class="ri-mac-line"></i> My Assets</a>
+      <a href="{% url 'emp_allocations' %}" class="nav-link"><i class="ri-send-plane-line"></i> My Requests</a>
+      <a href="{% url 'emp_transfers' %}" class="nav-link active"><i class="ri-shuffle-line"></i> My Transfers</a>
+      <a href="{% url 'emp_bookings' %}" class="nav-link"><i class="ri-calendar-event-line"></i> Book Resource</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-profile">
+        <div class="user-avatar" style="background:var(--color-info);color:white;">{{ user_name|slice:":2"|upper }}</div>
+        <div class="user-info">
+          <span class="user-name">{{ user_name }}</span>
+          <span class="user-role">Employee</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="top-header">
+      <div class="header-left">
+        <h1 class="header-title">My Transfer Requests</h1>
+      </div>
+      <div class="header-right">
+        <span class="dept-pill" style="background:var(--color-info-light);color:var(--color-info);">Employee Panel</span>
+        <a href="{% url 'logout' %}" class="logout-btn"><i class="ri-logout-box-line"></i> Sign Out</a>
+      </div>
+    </header>
+
+    <main class="page-body animate-slide-right">
+      {% if messages %}
+        {% for message in messages %}
+          <div style="padding:12px 16px;border-radius:8px;margin-bottom:16px;background:{% if message.tags == 'error' %}#fee2e2{% else %}#d1fae5{% endif %};color:{% if message.tags == 'error' %}#b91c1c{% else %}#065f46{% endif %};">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+
+      <div style="display:flex;justify-content:flex-end;margin-bottom:20px;">
+        <button class="btn" style="background:var(--color-info);color:white;" onclick="document.getElementById('transfer-modal').style.display='flex'">
+          <i class="ri-arrow-left-right-line"></i> Handover Asset
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">My Transfer History</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table-custom">
+            <thead>
+              <tr>
+                <th>Transfer ID</th>
+                <th>Asset</th>
+                <th>Transferred To</th>
+                <th>Reason</th>
+                <th>Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for req in transfers %}
+              <tr>
+                <td><span style="font-weight:600;color:var(--color-info);">{{ req.transfer_id }}</span></td>
+                <td>{{ req.asset.name }}</td>
+                <td>{{ req.to_employee.name }}</td>
+                <td>{{ req.reason|default:"—" }}</td>
+                <td>{{ req.request_date }}</td>
+                <td><span class="badge badge-{{ req.status|lower }}">{{ req.status }}</span></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" style="text-align:center;color:var(--color-text-secondary);padding:24px;">You have no transfer requests.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal-overlay" id="transfer-modal" style="display:none;">
+    <div class="modal-container">
+      <div class="modal-header">
+        <span class="modal-title">Handover Asset to Colleague</span>
+        <button class="modal-close-btn" onclick="document.getElementById('transfer-modal').style.display='none'"><i class="ri-close-line"></i></button>
+      </div>
+      <form method="POST" action="{% url 'emp_transfers' %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Select Your Asset <span style="color:var(--color-danger)">*</span></label>
+            <select name="asset_id" class="form-control" required>
+              <option value="" disabled selected>-- Choose from your assets --</option>
+              {% for a in my_assets %}
+              <option value="{{ a.id }}">{{ a.name }} ({{ a.asset_id }})</option>
+              {% empty %}
+              <option disabled>You have no assets to transfer.</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Transfer To <span style="color:var(--color-danger)">*</span></label>
+            <select name="to_employee" class="form-control" required>
+              <option value="" disabled selected>-- Select Colleague --</option>
+              {% for u in all_users %}
+              <option value="{{ u.id }}">{{ u.name }} ({{ u.email }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Reason</label>
+            <textarea name="reason" class="form-control" placeholder="Brief reason for handover..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('transfer-modal').style.display='none'">Cancel</button>
+          <button type="submit" class="btn" style="background:var(--color-info);color:white;">Submit Handover</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</body>
+</html>

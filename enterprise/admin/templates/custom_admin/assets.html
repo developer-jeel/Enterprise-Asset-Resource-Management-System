@@ -1,0 +1,214 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assets — AssetFlow Admin Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">AF</div>
+      <div class="sidebar-brand-text">
+        <span class="sidebar-app-name">AssetFlow</span>
+        <span class="sidebar-app-sub">Admin Panel</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="{% url 'admin_index' %}" class="nav-link"><i class="ri-dashboard-line"></i> Dashboard</a>
+      <a href="{% url 'admin_assets' %}" class="nav-link active"><i class="ri-box-3-line"></i> Assets</a>
+      <a href="{% url 'admin_allocations' %}" class="nav-link"><i class="ri-send-plane-line"></i> Allocation Requests</a>
+      <a href="{% url 'admin_transfers' %}" class="nav-link"><i class="ri-shuffle-line"></i> Transfer Requests</a>
+      <a href="{% url 'admin_bookings' %}" class="nav-link"><i class="ri-calendar-event-line"></i> Resource Booking</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-profile">
+        <div class="user-avatar">{{ user_name|slice:":2"|upper }}</div>
+        <div class="user-info">
+          <span class="user-name">{{ user_name }}</span>
+          <span class="user-role">{{ user_role|title }}</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <header class="top-header">
+      <div class="header-left">
+        <h1 class="header-title">Assets</h1>
+      </div>
+      <div class="header-right">
+        <span class="dept-pill">Admin Panel</span>
+        <a href="{% url 'logout' %}" class="logout-btn"><i class="ri-logout-box-line"></i> Sign Out</a>
+      </div>
+    </header>
+
+    <main class="page-body animate-slide-right">
+      {% if messages %}
+        {% for message in messages %}
+          <div style="padding:12px 16px;border-radius:8px;margin-bottom:16px;background:{% if message.tags == 'error' %}#fee2e2{% else %}#d1fae5{% endif %};color:{% if message.tags == 'error' %}#b91c1c{% else %}#065f46{% endif %};">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+
+      <div style="display:flex;justify-content:flex-end;margin-bottom:20px;">
+        <button class="btn btn-primary" onclick="document.getElementById('asset-modal').style.display='flex'">
+          <i class="ri-add-line"></i> Add New Asset
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">All Assets</span>
+        </div>
+
+        <!-- Filters Bar -->
+        <div class="filters-bar">
+          <div class="search-wrapper">
+            <i class="ri-search-line search-icon"></i>
+            <input type="text" id="asset-search" class="search-input" placeholder="Search ID, name, employee...">
+          </div>
+          <div class="filter-group">
+            <label for="category-filter" class="form-label" style="margin-bottom:0;font-weight:500;">Category:</label>
+            <select id="category-filter" class="filter-select">
+              <option value="All">All Categories</option>
+              <option value="Laptops">Laptops</option>
+              <option value="Monitors">Monitors</option>
+              <option value="Phones">Phones</option>
+              <option value="Tablets">Tablets</option>
+              <option value="Chairs">Chairs</option>
+              <option value="Headsets">Headsets</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive">
+          <table class="table-custom" id="assets-table">
+            <thead>
+              <tr>
+                <th>Asset ID</th>
+                <th>Asset Name</th>
+                <th>Category</th>
+                <th>Assigned To</th>
+                <th>Status</th>
+                <th>Location</th>
+                <th>Allocation Date</th>
+                <th>Expected Return</th>
+              </tr>
+            </thead>
+            <tbody id="assets-table-body">
+              {% for asset in assets %}
+              <tr data-name="{{ asset.name|lower }}" data-id="{{ asset.asset_id|lower }}" data-employee="{{ asset.assigned_to.name|lower|default:'' }}" data-category="{{ asset.category }}">
+                <td><span style="font-weight:600;color:var(--color-brand);">{{ asset.asset_id }}</span></td>
+                <td style="font-weight:500;">{{ asset.name }}</td>
+                <td>{{ asset.category }}</td>
+                <td>{{ asset.assigned_to.name|default:"Unassigned" }}</td>
+                <td><span class="badge badge-{% if asset.status == 'Allocated' %}approved{% elif asset.status == 'Available' %}brand{% else %}pending{% endif %}">{{ asset.status }}</span></td>
+                <td>{{ asset.location|default:"—" }}</td>
+                <td>{{ asset.allocation_date|default:"—" }}</td>
+                <td>{{ asset.expected_return|default:"—" }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="8" style="text-align:center;color:var(--color-text-secondary);padding:24px;">No assets found.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- New Asset Modal -->
+  <div class="modal-overlay" id="asset-modal" style="display:none;">
+    <div class="modal-container">
+      <div class="modal-header">
+        <span class="modal-title">Add New Asset</span>
+        <button class="modal-close-btn" onclick="document.getElementById('asset-modal').style.display='none'"><i class="ri-close-line"></i></button>
+      </div>
+      <form method="POST" action="{% url 'admin_assets' %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Asset Name <span style="color:var(--color-danger)">*</span></label>
+            <input type="text" name="name" class="form-control" placeholder="e.g. MacBook Pro 16" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select name="category" class="form-control">
+              <option value="Laptops">Laptops</option>
+              <option value="Monitors">Monitors</option>
+              <option value="Phones">Phones</option>
+              <option value="Tablets">Tablets</option>
+              <option value="Chairs">Chairs</option>
+              <option value="Headsets">Headsets</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select name="status" class="form-control">
+              <option value="Available">Available</option>
+              <option value="In Maintenance">In Maintenance</option>
+              <option value="Retired">Retired</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Assign To (Optional)</label>
+            <select name="assigned_to" class="form-control">
+              <option value="">-- No User (Unassigned) --</option>
+              {% for u in all_users %}
+              <option value="{{ u.id }}">{{ u.name }} ({{ u.email }})</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Location</label>
+            <input type="text" name="location" class="form-control" placeholder="e.g. NY Office, Desk 42">
+          </div>
+          <div class="form-group" style="display:flex;gap:16px;margin-bottom:0;">
+            <div style="flex:1;">
+              <label class="form-label">Allocation Date</label>
+              <input type="date" name="allocation_date" class="form-control">
+            </div>
+            <div style="flex:1;">
+              <label class="form-label">Expected Return</label>
+              <input type="date" name="expected_return" class="form-control">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('asset-modal').style.display='none'">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Asset</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="{% static 'js/app.js' %}"></script>
+  <script>
+    // Client-side search + filter
+    const searchInput = document.getElementById('asset-search');
+    const categoryFilter = document.getElementById('category-filter');
+
+    function filterTable() {
+      const query = searchInput.value.toLowerCase().trim();
+      const category = categoryFilter.value;
+      document.querySelectorAll('#assets-table-body tr[data-name]').forEach(row => {
+        const matchSearch = row.dataset.name.includes(query) || row.dataset.id.includes(query) || row.dataset.employee.includes(query);
+        const matchCategory = category === 'All' || row.dataset.category === category;
+        row.style.display = (matchSearch && matchCategory) ? '' : 'none';
+      });
+    }
+
+    searchInput.addEventListener('input', filterTable);
+    categoryFilter.addEventListener('change', filterTable);
+  </script>
+</body>
+</html>

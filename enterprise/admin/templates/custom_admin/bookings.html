@@ -1,0 +1,233 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resource Booking — AssetFlow Admin Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">AF</div>
+      <div class="sidebar-brand-text">
+        <span class="sidebar-app-name">AssetFlow</span>
+        <span class="sidebar-app-sub">Admin Panel</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="{% url 'admin_index' %}" class="nav-link"><i class="ri-dashboard-line"></i> Dashboard</a>
+      <a href="{% url 'admin_assets' %}" class="nav-link"><i class="ri-box-3-line"></i> Assets</a>
+      <a href="{% url 'admin_allocations' %}" class="nav-link"><i class="ri-send-plane-line"></i> Allocation Requests</a>
+      <a href="{% url 'admin_transfers' %}" class="nav-link"><i class="ri-shuffle-line"></i> Transfer Requests</a>
+      <a href="{% url 'admin_bookings' %}" class="nav-link active"><i class="ri-calendar-event-line"></i> Resource Booking</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-profile">
+        <div class="user-avatar">{{ user_name|slice:":2"|upper }}</div>
+        <div class="user-info">
+          <span class="user-name">{{ user_name }}</span>
+          <span class="user-role">{{ user_role|title }}</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <header class="top-header">
+      <div class="header-left">
+        <h1 class="header-title">Resource Booking</h1>
+      </div>
+      <div class="header-right">
+        <span class="dept-pill">Admin Panel</span>
+        <a href="{% url 'logout' %}" class="logout-btn"><i class="ri-logout-box-line"></i> Sign Out</a>
+      </div>
+    </header>
+
+    <main class="page-body animate-slide-right">
+      {% if messages %}
+        {% for message in messages %}
+          <div style="padding:12px 16px;border-radius:8px;margin-bottom:16px;background:{% if message.tags == 'error' %}#fee2e2{% else %}#d1fae5{% endif %};color:{% if message.tags == 'error' %}#b91c1c{% else %}#065f46{% endif %};">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+
+      <!-- Top Actions -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+        <span style="font-size:14px;color:var(--color-text-secondary);">Book shared organization tools, conference halls, rooms, and vehicles.</span>
+        <button class="btn btn-primary" onclick="document.getElementById('booking-modal').style.display='flex'">
+          <i class="ri-calendar-todo-line"></i> New Booking
+        </button>
+      </div>
+
+      <!-- Resource Cards -->
+      <div class="resource-grid">
+        <div class="resource-card">
+          <div class="resource-header">
+            <div class="resource-icon"><i class="ri-community-line"></i></div>
+            <span class="resource-name">Meeting Room 204</span>
+          </div>
+          <p class="resource-desc">Medium-sized workspace equipped with smart whiteboards, a 4K TV, and seating for 8-10 people.</p>
+          <div class="resource-meta">
+            <span>Capacity: 10 Seats</span>
+            <span class="badge badge-brand" style="font-size:8px;">Available</span>
+          </div>
+        </div>
+        <div class="resource-card">
+          <div class="resource-header">
+            <div class="resource-icon"><i class="ri-community-line"></i></div>
+            <span class="resource-name">Conference Hall B</span>
+          </div>
+          <p class="resource-desc">Large presentation venue with integrated surround audio system and seating for 45.</p>
+          <div class="resource-meta">
+            <span>Capacity: 45 Seats</span>
+            <span class="badge badge-brand" style="font-size:8px;">Available</span>
+          </div>
+        </div>
+        <div class="resource-card">
+          <div class="resource-header">
+            <div class="resource-icon"><i class="ri-projector-2-line"></i></div>
+            <span class="resource-name">Projector Max</span>
+          </div>
+          <p class="resource-desc">Ultra-short throw portable 4K laser projector for off-site visual demos.</p>
+          <div class="resource-meta">
+            <span>Device Type: AV Equipment</span>
+            <span class="badge badge-brand" style="font-size:8px;">Shared</span>
+          </div>
+        </div>
+        <div class="resource-card">
+          <div class="resource-header">
+            <div class="resource-icon"><i class="ri-car-line"></i></div>
+            <span class="resource-name">Corporate Sedan</span>
+          </div>
+          <p class="resource-desc">Electric executive corporate car (Tesla Model 3) for client visits and on-site handovers.</p>
+          <div class="resource-meta">
+            <span>Category: Fleet Vehicles</span>
+            <span class="badge badge-brand" style="font-size:8px;">Shared</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Booking History -->
+      <div class="card animate-slide-left">
+        <div class="card-header">
+          <span class="card-title">Booking History</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table-custom">
+            <thead>
+              <tr>
+                <th>Booking ID</th>
+                <th>Resource</th>
+                <th>Booking Date</th>
+                <th>Time Window</th>
+                <th>Purpose</th>
+                <th>Reserved By</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for b in bookings %}
+              <tr>
+                <td><span style="font-weight:600;color:var(--color-brand);">{{ b.booking_id }}</span></td>
+                <td style="font-weight:500;">{{ b.resource_name }}</td>
+                <td>{{ b.booking_date }}</td>
+                <td>{{ b.start_time }} - {{ b.end_time }}</td>
+                <td>{{ b.purpose }}</td>
+                <td>{{ b.booked_by.name }}</td>
+                <td>
+                  {% if b.status == 'Active' %}
+                    <span class="badge badge-approved">Active</span>
+                  {% elif b.status == 'Cancelled' %}
+                    <span class="badge badge-rejected">Cancelled</span>
+                  {% else %}
+                    <span class="badge badge-pending">{{ b.status }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if b.status == 'Active' %}
+                  <form method="POST" action="{% url 'admin_bookings' %}" onsubmit="return confirm('Cancel this booking?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="cancel">
+                    <input type="hidden" name="booking_id" value="{{ b.id }}">
+                    <button type="submit" class="btn btn-danger btn-sm"><i class="ri-delete-bin-line"></i> Cancel</button>
+                  </form>
+                  {% else %}
+                  <span style="font-size:12px;color:var(--color-text-muted);font-style:italic;">N/A</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="8" style="text-align:center;color:var(--color-text-secondary);padding:24px;">No booking records found.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- New Booking Modal -->
+  <div class="modal-overlay" id="booking-modal" style="display:none;">
+    <div class="modal-container">
+      <div class="modal-header">
+        <span class="modal-title">Book Shared Resource</span>
+        <button class="modal-close-btn" onclick="document.getElementById('booking-modal').style.display='none'"><i class="ri-close-line"></i></button>
+      </div>
+      <form method="POST" action="{% url 'admin_bookings' %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Select Resource <span style="color:var(--color-danger)">*</span></label>
+            <select name="resource" class="form-control" required>
+              <option value="" disabled selected>-- Select a Resource --</option>
+              <option value="Meeting Room 204">Meeting Room 204</option>
+              <option value="Conference Hall B">Conference Hall B</option>
+              <option value="Projector Max">Projector Max (AV Equipment)</option>
+              <option value="Corporate Sedan">Corporate Sedan (Tesla Model 3)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Booking Date <span style="color:var(--color-danger)">*</span></label>
+            <input type="date" name="date" class="form-control" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Start Time <span style="color:var(--color-danger)">*</span></label>
+              <input type="time" name="start_time" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">End Time <span style="color:var(--color-danger)">*</span></label>
+              <input type="time" name="end_time" class="form-control" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Purpose <span style="color:var(--color-danger)">*</span></label>
+            <input type="text" name="purpose" class="form-control" placeholder="e.g. Design review, client meeting..." required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Department</label>
+            <input type="text" name="department" class="form-control" value="Engineering">
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Special Notes</label>
+            <textarea name="notes" class="form-control" placeholder="e.g. Setup adapter, room layout request..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('booking-modal').style.display='none'">Cancel</button>
+          <button type="submit" class="btn btn-primary">Confirm Booking</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="{% static 'js/app.js' %}"></script>
+</body>
+</html>

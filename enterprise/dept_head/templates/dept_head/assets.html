@@ -1,0 +1,127 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Department Assets — AssetFlow Dept Head Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-logo">AF</div>
+      <div class="sidebar-brand-text">
+        <span class="sidebar-app-name">AssetFlow</span>
+        <span class="sidebar-app-sub">Dept Head</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="{% url 'dh_index' %}" class="nav-link"><i class="ri-dashboard-line"></i> Dashboard</a>
+      <a href="{% url 'dh_assets' %}" class="nav-link active"><i class="ri-box-3-line"></i> Department Assets</a>
+      <a href="{% url 'dh_allocations' %}" class="nav-link"><i class="ri-send-plane-line"></i> Allocation Requests</a>
+      <a href="{% url 'dh_transfers' %}" class="nav-link"><i class="ri-shuffle-line"></i> Transfer Requests</a>
+      <a href="{% url 'dh_bookings' %}" class="nav-link"><i class="ri-calendar-event-line"></i> Resource Booking</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-profile">
+        <div class="user-avatar">{{ user_name|slice:":2"|upper }}</div>
+        <div class="user-info">
+          <span class="user-name">{{ user_name }}</span>
+          <span class="user-role">Department Head</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="top-header">
+      <div class="header-left">
+        <h1 class="header-title">Department Assets</h1>
+      </div>
+      <div class="header-right">
+        <span class="dept-pill">Dept Head Panel</span>
+        <a href="{% url 'logout' %}" class="logout-btn"><i class="ri-logout-box-line"></i> Sign Out</a>
+      </div>
+    </header>
+
+    <main class="page-body animate-slide-right">
+      {% if messages %}
+        {% for message in messages %}
+          <div style="padding:12px 16px;border-radius:8px;margin-bottom:16px;background:{% if message.tags == 'error' %}#fee2e2{% else %}#d1fae5{% endif %};color:{% if message.tags == 'error' %}#b91c1c{% else %}#065f46{% endif %};">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">All Assets</span>
+        </div>
+
+        <div class="filters-bar">
+          <div class="search-wrapper">
+            <i class="ri-search-line search-icon"></i>
+            <input type="text" id="asset-search" class="search-input" placeholder="Search ID, name, employee...">
+          </div>
+          <div class="filter-group">
+            <label class="form-label" style="margin-bottom:0;font-weight:500;">Status:</label>
+            <select id="status-filter" class="filter-select">
+              <option value="All">All Statuses</option>
+              <option value="Available">Available</option>
+              <option value="Allocated">Allocated</option>
+              <option value="Under Maintenance">Under Maintenance</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table-custom" id="assets-table">
+            <thead>
+              <tr>
+                <th>Asset ID</th>
+                <th>Asset Name</th>
+                <th>Category</th>
+                <th>Assigned To</th>
+                <th>Status</th>
+                <th>Location</th>
+              </tr>
+            </thead>
+            <tbody id="assets-tbody">
+              {% for asset in assets %}
+              <tr data-name="{{ asset.name|lower }}" data-id="{{ asset.asset_id|lower }}" data-employee="{{ asset.assigned_to.name|lower|default:'' }}" data-status="{{ asset.status }}">
+                <td><span style="font-weight:600;color:var(--color-brand);">{{ asset.asset_id }}</span></td>
+                <td style="font-weight:500;">{{ asset.name }}</td>
+                <td>{{ asset.category }}</td>
+                <td>{{ asset.assigned_to.name|default:"Unassigned" }}</td>
+                <td><span class="badge badge-{% if asset.status == 'Allocated' %}approved{% elif asset.status == 'Available' %}brand{% else %}pending{% endif %}">{{ asset.status }}</span></td>
+                <td>{{ asset.location|default:"—" }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" style="text-align:center;color:var(--color-text-secondary);padding:24px;">No assets found.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="{% static 'js/app.js' %}"></script>
+  <script>
+    const searchInput = document.getElementById('asset-search');
+    const statusFilter = document.getElementById('status-filter');
+    function filterTable() {
+      const q = searchInput.value.toLowerCase();
+      const s = statusFilter.value;
+      document.querySelectorAll('#assets-tbody tr[data-name]').forEach(row => {
+        const matchSearch = row.dataset.name.includes(q) || row.dataset.id.includes(q) || row.dataset.employee.includes(q);
+        const matchStatus = s === 'All' || row.dataset.status === s;
+        row.style.display = (matchSearch && matchStatus) ? '' : 'none';
+      });
+    }
+    searchInput.addEventListener('input', filterTable);
+    statusFilter.addEventListener('change', filterTable);
+  </script>
+</body>
+</html>
