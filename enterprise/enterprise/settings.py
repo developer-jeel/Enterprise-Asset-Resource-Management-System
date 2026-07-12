@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'admin',
+    'admin.apps.AdminConfig',
     'employee',
     'dept_head',
     'manager',
