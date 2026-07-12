@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AssetFlow — Create account</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="signup.css">
+</head>
+<body>
+
+<div class="stage">
+  <form class="card" id="signupForm" novalidate>
+
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C12 2 6 9.5 6 14a6 6 0 0 0 12 0c0-4.5-6-12-6-12z" fill="#ffffff"/>
+        </svg>
+      </div>
+      <span class="brand-name">AssetFlow</span>
+    </div>
+
+    <div class="card-eyebrow">Create account</div>
+    <h1 class="card-title">Join as employee.</h1>
+    <p class="card-sub">Admins promote roles from the Employee Directory.</p>
+
+    <div class="field">
+      <label for="fullName">Full name</label>
+      <input type="text" id="fullName" name="fullName" placeholder="e.g. Aisha Khan" autocomplete="name">
+      <span class="error-msg" id="fullNameError"></span>
+    </div>
+
+    <div class="field">
+      <label for="workEmail">Work email</label>
+      <input type="email" id="workEmail" name="workEmail" placeholder="you@company.com" autocomplete="email">
+      <span class="error-msg" id="workEmailError"></span>
+    </div>
+
+    <div class="field">
+      <label for="password">Password</label>
+      <div class="password-wrap">
+        <input type="password" id="password" name="password" placeholder="At least 8 characters" autocomplete="new-password">
+        <button type="button" class="toggle-pw" id="togglePw" aria-label="Show password">Show</button>
+      </div>
+      <span class="error-msg" id="passwordError"></span>
+    </div>
+
+    <button type="submit" class="btn-primary" id="submitBtn">Create account</button>
+
+    <p class="signup-row">Already have an account? <a href="#">Sign in</a></p>
+
+  </form>
+</div>
+
+<div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
+
+<script src="signup.js"></script>
+</body>
+</html>
